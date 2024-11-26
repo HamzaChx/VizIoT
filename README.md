@@ -44,17 +44,22 @@ The thesis adopts the Design Science Research Methodology (DSRM), focusing on th
 ## How to Use
 
 1. Clone the repository:  
+
    ```bash
    git clone https://github.com/HamzaChkx/VizIoT.git
    ```
 2. Navigate to the project directory:
+
     ```bash
     cd VizIoT
     ```
 3. Install Dependencies
+
     ```bash
     npm install
+
 4. Run the application
+
     ```bash
     npm start
     ```
