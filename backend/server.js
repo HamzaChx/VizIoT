@@ -3,19 +3,25 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import database from './database.js';
+import { startSlidingWindowStream } from './utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Configurations
+const SLIDING_WINDOW_CONFIG = {
+  slidingWindowDuration: 40 * 1000, 
+  windowIncrement: 2 * 1000,
+  streamInterval: 1000,
+};
+
 // Enable CORS to allow requests from the frontend
 app.use(cors());
 app.use(express.json());
-
-// Serve the frontend files with MIME type handling
 app.use(express.static(path.join(__dirname, '../frontend'), {}));
 
-
+// Endpoint to load log data into the database
 app.get('/load-log', async (req, res) => {
   try {
     const sensorDataFilePath = path.join(__dirname, 'data/sensor_data_stream.json');
@@ -30,31 +36,29 @@ app.get('/load-log', async (req, res) => {
   }
 });
 
-// (async () => {
-//   sensorSequence = await database.getSensorSequence(resultFilePath);
-// })();
+// Endpoint for SSE stream with sliding window
+app.get('/stream-sliding-window', async (req, res) => {
+  const sensorId = parseInt(req.query.sensor_id, 10);
 
-app.get('/data/sliding-window', async (req, res) => {
-  const { start, end, sensor_id } = req.query;
-
-  if (!start || !end) {
-      return res.status(400).send('Start and end times are required.');
+  if (!sensorId) {
+      res.status(400).send('Invalid sensor ID');
+      return;
   }
 
   try {
       const db = await database.initializeDatabase();
-      const sensorId = sensor_id ? parseInt(sensor_id, 10) : null; // Convert sensor_id to integer if provided
-      const { sensorData } = await database.fetchSlidingWindowData(db, start, end, sensorId);
-
-      res.json({ sensorData });
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      startSlidingWindowStream(res, db, sensorId, SLIDING_WINDOW_CONFIG);
   } catch (error) {
-      console.error(`Error fetching sliding window data: ${error.message}`);
-      res.status(500).send('Error fetching data.');
+      console.error(`Error initializing database: ${error.message}`);
+      res.status(500).send('Failed to initialize database');
   }
 });
 
 // Endpoint to get all sensors
-app.get('/sensors', async (req, res) => {
+app.get('/api/sensors', async (req, res) => {
   try {
     const db = await database.initializeDatabase();
     const sensors = await db.all('SELECT * FROM Sensors');
@@ -66,7 +70,7 @@ app.get('/sensors', async (req, res) => {
 });
 
 // Endpoint to get events for a specific sensor
-app.get('/sensors/:id/events', async (req, res) => {
+app.get('/api/sensors/:id/events', async (req, res) => {
   try {
     const db = await database.initializeDatabase();
     const sensorId = req.params.id;
