@@ -25,8 +25,14 @@
 
     <!-- Main Content -->
     <main class="flex-grow-1 bg-light py-4">
+      <div class="container d-flex flex-column align-items-center">
 
-      <div class="container d-flex flex-column align-items-center">     
+        <div id="initial-alert" class="alert alert-info" role="alert" style="max-width: 600px; transition: opacity 0.5s ease-in-out;">
+          Press play to start the visualization
+        </div>
+
+        <!-- Start/End Alert -->
+        <div id="alert-box" class="alert d-none" role="alert" style="transition: opacity 0.5s ease-in-out;"></div>
 
         <!-- Controls -->
         <div class="d-flex justify-content-center gap-3 mb-4">
@@ -37,20 +43,20 @@
 
         <!-- Graph Container -->
         <div class="card shadow w-100" style="max-width: 1200px;">
-          <div class="card-body p-3" style="height: 70vh;"> <!-- Increased height -->
+          <div class="card-body p-3" style="height: 70vh;">
             <canvas id="example-canvas" class="w-100 h-100"></canvas>
           </div>
         </div>
-    
       </div>
     </main>
 
+
     <!-- Footer -->
-    <footer class="bg-dark text-light text-center py-3 mt-auto">
+    <!-- <footer class="bg-dark text-light text-center py-3 mt-auto">
       <div class="container">
         <small>&copy; 2024 TUM Bachelor Thesis Project</small>
       </div>
-    </footer>
+    </footer> -->
 
     <!-- GR Library -->
     <script src="source/js/gr.js"></script>
