@@ -1,83 +1,65 @@
-import { fetchCurrentWindow } from './api.js';
-import { preprocessData, plotData } from './plotGraph.js';
+import { initializeGraph, startDrawing, updateBuffers } from './graph.js';
 
-let startTime = new Date('2023-04-28T17:01:13.00+02:00');
-let endTime = new Date(startTime.getTime() + 40 * 1000);
-const windowIncrement = 10 * 1000;
-let slidingWindowActive = false;
-let slidingWindowTimer = null;
-let sensorId = 6;
+let eventSource = null;
 
-function formatDateWithOffset(date) {
-    const offset = -date.getTimezoneOffset();
-    const absOffsetHours = Math.abs(Math.floor(offset / 60)).toString().padStart(2, '0');
-    const absOffsetMinutes = Math.abs(offset % 60).toString().padStart(2, '0');
-    const sign = offset >= 0 ? '+' : '-';
+/**
+ * Starts listening to the sliding window data stream using SSE.
+ * @param {string} canvasId - The canvas element ID for the graph.
+ * @param {number} sensorId - The sensor ID to stream data for.
+ */
+function startSlidingWindowStream(canvasId, sensorId) {
+    if (eventSource) {
+        console.log('Sliding window stream already active.');
+        return;
+    }
 
-    return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}T${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}.${date.getMilliseconds().toString().padStart(3, '0')}${sign}${absOffsetHours}:${absOffsetMinutes}`;
-}
+    initializeGraph(canvasId); // Initialize the graph
+    startDrawing(); // Start continuous graph drawing
 
-async function requestAndPlotSlidingWindow() {
-    if (!slidingWindowActive) return;
+    // Create the EventSource
+    eventSource = new EventSource(`/stream-sliding-window?sensor_id=${sensorId}`);
 
-    try {
-        const tempStartTime = formatDateWithOffset(startTime);
-        const tempEndTime = formatDateWithOffset(endTime);
+    // Listen for new data
+    eventSource.onmessage = (event) => {
+        try {
+            const { sensorData } = JSON.parse(event.data);
 
-        console.log('Requesting data for window:', { tempStartTime, tempEndTime });
+            if (!sensorData || sensorData.length === 0) {
+                console.log('No data received for the sliding window.');
+                return;
+            }
 
-        const data = await fetchCurrentWindow(tempStartTime, tempEndTime, sensorId);
+            // Transform and update the buffers with new data
+            const transformedData = sensorData.map((entry) => ({
+                x: new Date(entry.timestamp).getTime() / 1000, // Convert timestamp to seconds
+                y: entry.value, // Use the sensor value as the Y-coordinate
+            }));
 
-        if (!data || !data.sensorData || (data.sensorData.length === 0 && (!data.processEvents || data.processEvents.length === 0))) {
-            console.log('No more data to fetch. Sliding window stopped.');
-            slidingWindowActive = false;
-            return;
+            // Ensure all received data is added to the buffer
+            updateBuffers(transformedData);
+        } catch (error) {
+            console.error('Error processing sliding window data:', error);
         }
+    };
 
-        const { processedData, processEvents = [] } = preprocessData(data);
-        plotData(processedData, processEvents);
+    // Handle connection errors
+    eventSource.onerror = (error) => {
+        console.error('Sliding window stream encountered an error:', error);
+        stopSlidingWindowStream(); // Cleanup
+    };
 
-        startTime = new Date(startTime.getTime() + windowIncrement);
-        endTime = new Date(endTime.getTime() + windowIncrement);
+    console.log(`Sliding window stream started for sensor ID: ${sensorId}`);
+}
 
-        slidingWindowTimer = setTimeout(() => requestAndPlotSlidingWindow(), 8 * 1000);
-    } catch (error) {
-        console.error('Error in sliding window logic:', error);
+/**
+ * Stops the sliding window data stream.
+ */
+function stopSlidingWindowStream() {
+    if (eventSource) {
+        eventSource.close();
+        eventSource = null;
+        console.log('Sliding window stream stopped.');
     }
 }
 
-function startSlidingWindow() {
-    if (!slidingWindowActive) {
-        slidingWindowActive = true;
-        requestAndPlotSlidingWindow();
-        console.log('Sliding window started.');
-    }
-}
-
-function pauseSlidingWindow() {
-    slidingWindowActive = false;
-    console.log('Sliding window paused.');
-}
-
-function stopSlidingWindow() {
-    slidingWindowActive = false;
-    if (slidingWindowTimer) {
-        clearTimeout(slidingWindowTimer);
-        slidingWindowTimer = null;
-        console.log('Sliding window stopped.');
-    }
-}
-
-function setupSlidingWindow() {
-    const playButton = document.getElementById('play-button');
-    const pauseButton = document.getElementById('pause-button');
-    const stopButton = document.getElementById('stop-button');
-
-    if (playButton) playButton.addEventListener('click', startSlidingWindow);
-    if (pauseButton) pauseButton.addEventListener('click', pauseSlidingWindow);
-    if (stopButton) stopButton.addEventListener('click', stopSlidingWindow);
-
-    console.log('Event listeners added for existing buttons.');
-}
-
-export { setupSlidingWindow, startSlidingWindow, pauseSlidingWindow, stopSlidingWindow };
+export { startSlidingWindowStream, stopSlidingWindowStream };
