@@ -16,7 +16,7 @@ function formatDateWithOffset(date) {
  * Utility function to handle sliding window logic.
  */
 export const startSlidingWindowStream = (res, db, sensorId, config) => {
-    let startTime = new Date('2023-04-28T17:01:13.00+02:00'); // TODO: Change to be a dynamic start time
+    let startTime = new Date('2023-04-28T17:01:02.00+02:00'); // TODO: Change to be a dynamic start time
     let endTime = new Date(startTime.getTime() + config.slidingWindowDuration);
     let dataBuffer = []; // Buffer for received data
 

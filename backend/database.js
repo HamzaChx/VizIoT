@@ -173,11 +173,11 @@ async function fetchSlidingWindowData(db, start, end, sensorId = null) {
 
   // Query to fetch SensorData and associated sensor names
   let sensorDataQuery = `
-        SELECT sd.sensor_id, s.name AS sensor_name, sd.timestamp, sd.value
-        FROM SensorData sd
-        JOIN Sensors s ON sd.sensor_id = s.sensor_id
-        WHERE sd.timestamp BETWEEN ? AND ?
-    `;
+    SELECT sd.sensor_id, sd.timestamp, sd.value, pe.event_id
+    FROM ProcessEvents pe
+    JOIN SensorData sd ON pe.sensor_id = sd.sensor_id
+    WHERE sd.timestamp BETWEEN ? AND ?
+  `;
   const params = [start, end];
 
   // Add filter for specific sensor if sensorId is provided
@@ -187,7 +187,9 @@ async function fetchSlidingWindowData(db, start, end, sensorId = null) {
   }
 
   // Ensure the results are ordered by timestamp
-  sensorDataQuery += ` ORDER BY sd.timestamp ASC;`;
+  sensorDataQuery += `
+      ORDER BY pe.event_id ASC, sd.timestamp ASC;
+  `;
 
   // Execute the query
   const sensorData = await db.all(sensorDataQuery, params);
