@@ -13,8 +13,8 @@ function startSlidingWindowStream(canvasId, sensorId) {
         return;
     }
 
-    initializeGraph(canvasId); // Initialize the graph
-    startDrawing(); // Start continuous graph drawing
+    initializeGraph(canvasId);
+    startDrawing();
 
     // Create the EventSource
     eventSource = new EventSource(`/stream-sliding-window?sensor_id=${sensorId}`);
@@ -25,7 +25,6 @@ function startSlidingWindowStream(canvasId, sensorId) {
             const { sensorData } = JSON.parse(event.data);
 
             if (!sensorData || sensorData.length === 0) {
-                console.log('No data received for the sliding window.');
                 return;
             }
 
@@ -35,7 +34,7 @@ function startSlidingWindowStream(canvasId, sensorId) {
                 y: entry.value, // Use the sensor value as the Y-coordinate
             }));
 
-            // Ensure all received data is added to the buffer
+            // Ensure all received data is added to the buffer within the sliding window
             updateBuffers(transformedData);
         } catch (error) {
             console.error('Error processing sliding window data:', error);

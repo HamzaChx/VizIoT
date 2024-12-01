@@ -43,7 +43,6 @@ function startDrawing() {
     }
 
     let currentIndex = 0; // Track the index of the last drawn point
-    const windowSize = 50; // Number of points visible at a time on the X-axis
 
     function drawFrame() {
         if (xBuffer.length === 0 || yBuffer.length === 0) {
@@ -51,11 +50,11 @@ function startDrawing() {
             return; // Skip frame if no data available
         }
 
-        // Define the window dynamically based on the current index
-        const xMin = xBuffer[Math.max(0, currentIndex - windowSize)];
-        const xMax = xBuffer[currentIndex];
-        const yMin = Math.min(...yBuffer.slice(Math.max(0, currentIndex - windowSize), currentIndex + 1));
-        const yMax = Math.max(...yBuffer.slice(Math.max(0, currentIndex - windowSize), currentIndex + 1));
+        // Adjust data range dynamically for sliding window
+        const xMin = xBuffer[0];
+        const xMax = xBuffer[xBuffer.length - 1];
+        const yMin = Math.min(...yBuffer);
+        const yMax = Math.max(...yBuffer);
 
         // Clear the workspace and reset the viewport
         gr.clearws();
