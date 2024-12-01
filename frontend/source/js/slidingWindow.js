@@ -5,9 +5,8 @@ let eventSource = null;
 /**
  * Starts listening to the sliding window data stream using SSE.
  * @param {string} canvasId - The canvas element ID for the graph.
- * @param {number} sensorId - The sensor ID to stream data for.
  */
-function startSlidingWindowStream(canvasId, sensorId) {
+function startSlidingWindowStream(canvasId) {
     if (eventSource) {
         console.log('Sliding window stream already active.');
         return;
@@ -17,7 +16,7 @@ function startSlidingWindowStream(canvasId, sensorId) {
     startDrawing();
 
     // Create the EventSource
-    eventSource = new EventSource(`/stream-sliding-window?sensor_id=${sensorId}`);
+    eventSource = new EventSource('/stream-sliding-window');
 
     // Listen for new data
     eventSource.onmessage = (event) => {
@@ -30,6 +29,7 @@ function startSlidingWindowStream(canvasId, sensorId) {
 
             // Transform and update the buffers with new data
             const transformedData = sensorData.map((entry) => ({
+                sensorId: entry.sensor_id, // Keep track of the sensor
                 x: new Date(entry.timestamp).getTime() / 1000, // Convert timestamp to seconds
                 y: entry.value, // Use the sensor value as the Y-coordinate
             }));
@@ -47,7 +47,6 @@ function startSlidingWindowStream(canvasId, sensorId) {
         stopSlidingWindowStream(); // Cleanup
     };
 
-    console.log(`Sliding window stream started for sensor ID: ${sensorId}`);
 }
 
 /**
@@ -57,7 +56,7 @@ function stopSlidingWindowStream() {
     if (eventSource) {
         eventSource.close();
         eventSource = null;
-        console.log('Sliding window stream stopped.');
+        console.log('Sliding window stream stopped. Connection closed with the server.');
     }
 }
 

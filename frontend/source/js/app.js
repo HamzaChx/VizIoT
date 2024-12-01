@@ -37,3 +37,14 @@ document.getElementById('stop-button').addEventListener('click', () => {
     stopSlidingWindowStream();
     showMessage('Streaming of the data stopped.', 'warning');
 });
+
+document.getElementById("sensor-slider").addEventListener("input", async (event) => {
+    const sensorLimit = parseInt(event.target.value, 10);
+    document.getElementById("sensor-slider-label").textContent = `Sensors Visible: ${sensorLimit}`;
+
+    // Fetch data for the specified number of sensors
+    const { sensorData } = await fetchSlidingWindowData(db, startTime, endTime, sensorLimit);
+
+    // Update the graph
+    updateGraph(sensorData);
+});

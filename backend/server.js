@@ -38,24 +38,18 @@ app.get('/load-log', async (req, res) => {
 
 // Endpoint for SSE stream with sliding window
 app.get('/stream-sliding-window', async (req, res) => {
-  const sensorId = parseInt(req.query.sensor_id, 10);
-
-  if (!sensorId) {
-      res.status(400).send('Invalid sensor ID');
-      return;
-  }
-
   try {
       const db = await database.initializeDatabase();
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
-      startSlidingWindowStream(res, db, sensorId, SLIDING_WINDOW_CONFIG);
+      startSlidingWindowStream(res, db, SLIDING_WINDOW_CONFIG);
   } catch (error) {
       console.error(`Error initializing database: ${error.message}`);
       res.status(500).send('Failed to initialize database');
   }
 });
+
 
 // Endpoint to get all sensors
 app.get('/api/sensors', async (req, res) => {
