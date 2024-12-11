@@ -23,6 +23,7 @@ async function initializeDatabase() {
       sensor_id INTEGER NOT NULL,
       timestamp TEXT NOT NULL,
       value REAL,
+      original_value TEXT, -- New column for the original string value
       FOREIGN KEY (sensor_id) REFERENCES Sensors(sensor_id) ON DELETE CASCADE,
       UNIQUE (sensor_id, timestamp)
     );
@@ -94,24 +95,27 @@ async function storeSensorData(sensorData) {
           // Process and insert data points
           for (const [timestamp, value] of Object.entries(dataPoints)) {
               let processedValue = value;
+              let originalValue = null; // Default to null for non-string values
 
               if (value === null || value === undefined) {
                   continue;
               }
 
               if (typeof value === "string") {
+                  originalValue = value; // Save the original string value
                   processedValue = parseBinary(value);
+
                   if (processedValue === null) {
-                      processedValue = labelEncode(value);
+                      processedValue = labelEncode(value); // If not binary, label encode it
                   }
               }
 
               try {
                   // Use INSERT OR REPLACE to handle duplicate entries
                   await db.run(
-                      `INSERT OR REPLACE INTO SensorData (sensor_id, timestamp, value)
-                       VALUES (?, ?, ?)`,
-                      [sensor_id, timestamp, processedValue]
+                      `INSERT OR REPLACE INTO SensorData (sensor_id, timestamp, value, original_value)
+                       VALUES (?, ?, ?, ?)`,
+                      [sensor_id, timestamp, processedValue, originalValue]
                   );
               } catch (dbError) {
                   console.error(`Failed to insert or replace data for sensor ${sensorName} at ${timestamp}:`, dbError.message);
@@ -127,6 +131,7 @@ async function storeSensorData(sensorData) {
       await db.close();
   }
 }
+
 
 
 async function storeSensorEvents(processEvents) {
