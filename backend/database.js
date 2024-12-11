@@ -55,40 +55,79 @@ async function initializeDatabase() {
 
 async function storeSensorData(sensorData) {
   const db = await initializeDatabase();
-  try {
-    await db.run("BEGIN TRANSACTION");
 
-    for (const [sensorName, dataPoints] of sensorData) {
-      await db.run("INSERT OR IGNORE INTO Sensors (name) VALUES (?)", [
-        sensorName,
-      ]);
+  // Helper function to parse binary strings
+  function parseBinary(value) {
+      const binaryMapping = {
+          "close": 0, "open": 1,
+          "true": 1, "false": 0,
+          "active": 1, "inactive": 0
+      };
+      const normalizedValue = value?.toLowerCase();
+      return binaryMapping[normalizedValue] !== undefined ? binaryMapping[normalizedValue] : null;
+  }
 
-      const sensor = await db.get(
-        "SELECT sensor_id FROM Sensors WHERE name = ?",
-        [sensorName]
-      );
-      if (!sensor) continue;
-
-      const { sensor_id } = sensor;
-
-      for (const [timestamp, value] of Object.entries(dataPoints)) {
-        if (value !== null) {
-          await db.run(
-            "INSERT OR IGNORE INTO SensorData (sensor_id, timestamp, value) VALUES (?, ?, ?)",
-            [sensor_id, timestamp, value]
-          );
-        }
+  // Helper function to label encode strings
+  const stringLabelMap = new Map(); // Global map for consistent label encoding
+  function labelEncode(value) {
+      if (!stringLabelMap.has(value)) {
+          stringLabelMap.set(value, stringLabelMap.size + 1);
       }
-    }
+      return stringLabelMap.get(value);
+  }
 
-    await db.run("COMMIT");
+  try {
+      await db.run("BEGIN TRANSACTION");
+
+      for (const [sensorName, dataPoints] of sensorData) {
+          // Insert or ignore sensor name
+          await db.run("INSERT OR IGNORE INTO Sensors (name) VALUES (?)", [sensorName]);
+
+          // Get sensor_id
+          const sensor = await db.get("SELECT sensor_id FROM Sensors WHERE name = ?", [sensorName]);
+          if (!sensor) {
+              console.warn(`Sensor ${sensorName} could not be retrieved or created.`);
+              continue;
+          }
+          const { sensor_id } = sensor;
+
+          // Process and insert data points
+          for (const [timestamp, value] of Object.entries(dataPoints)) {
+              let processedValue = value;
+
+              if (value === null || value === undefined) {
+                  continue;
+              }
+
+              if (typeof value === "string") {
+                  processedValue = parseBinary(value);
+                  if (processedValue === null) {
+                      processedValue = labelEncode(value);
+                  }
+              }
+
+              try {
+                  // Use INSERT OR REPLACE to handle duplicate entries
+                  await db.run(
+                      `INSERT OR REPLACE INTO SensorData (sensor_id, timestamp, value)
+                       VALUES (?, ?, ?)`,
+                      [sensor_id, timestamp, processedValue]
+                  );
+              } catch (dbError) {
+                  console.error(`Failed to insert or replace data for sensor ${sensorName} at ${timestamp}:`, dbError.message);
+              }
+          }
+      }
+
+      await db.run("COMMIT");
   } catch (error) {
-    console.error("Error storing sensor data:", error);
-    await db.run("ROLLBACK");
+      console.error("Error storing sensor data:", error);
+      await db.run("ROLLBACK");
   } finally {
-    await db.close();
+      await db.close();
   }
 }
+
 
 async function storeSensorEvents(processEvents) {
   const db = await initializeDatabase();

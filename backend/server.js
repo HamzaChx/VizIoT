@@ -12,8 +12,8 @@ const PORT = process.env.PORT || 3000;
 // Configurations
 const SLIDING_WINDOW_CONFIG = {
   slidingWindowDuration: 30 * 1000, 
-  windowIncrement: 1000,
-  streamInterval: 500,
+  windowIncrement: 24,
+  streamInterval: 24,
 };
 
 // Enable CORS to allow requests from the frontend
