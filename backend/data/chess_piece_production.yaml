@@ -137,7 +137,7 @@
         data-min: -30000.000000000004
         data-max: 30000.000000000004
 - group:
-    id: maxxturn45
+    id: power
     timestamp: timestamp
     sensors:
     - MaxxTurn45_Axes_Power_Active_Sum:
@@ -241,6 +241,13 @@
         data: integer
         data-min: 0
         data-max: 2
+    - CounterSpindle_aaLeadP:
+        location: chess_piece_production/CounterSpindle_aaLeadP.csv
+        type: continuous
+        data: float
+        data-round: 2
+        data-min: 296.0
+        data-max: 720.0 
 - group:
     id: clamping_system
     timestamp: timestamp
@@ -254,7 +261,7 @@
         type: binary
         data: string
 - group:
-    id: open_close
+    id: binary
     timestamp: timestamp
     sensors:
     - Opened:
@@ -265,17 +272,6 @@
         location: chess_piece_production/Closed.csv
         type: binary
         data: boolean
-- group:
-    id: other
-    timestamp: timestamp
-    sensors:
-    - CounterSpindle_aaLeadP:
-        location: chess_piece_production/CounterSpindle_aaLeadP.csv
-        type: continuous
-        data: float
-        data-round: 2
-        data-min: 296.0
-        data-max: 720.0 
     - Active:
         location: chess_piece_production/Active.csv
         type: binary
@@ -288,6 +284,10 @@
         location: chess_piece_production/Ready.csv
         type: binary
         data: boolean
+- group:
+    id: other
+    timestamp: timestamp
+    sensors:
     - NC:
         location: chess_piece_production/NC.csv
         type: discrete
