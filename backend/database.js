@@ -265,43 +265,48 @@ async function processAndStore(sensorDataFilePath, eventFilePath, yamlFilePath) 
   }
 }
 
-async function fetchSlidingWindowData(db, start, end, sensorLimit = null) {
-  console.log("Fetching data for window:", { start, end });
-
-  let sensorDataQuery = `
-      SELECT sd.sensor_id, sd.timestamp, sd.value, pe.event_id
-      FROM ProcessEvents pe
-      JOIN SensorData sd ON pe.sensor_id = sd.sensor_id
-      WHERE sd.timestamp BETWEEN ? AND ?
-  `;
-  const params = [start, end];
-
-  // Limit the number of sensors if `sensorLimit` is provided
-  if (sensorLimit) {
-    sensorDataQuery += `
-        AND pe.event_id <= (
-            SELECT event_id
-            FROM ProcessEvents
-            ORDER BY event_id ASC
-            LIMIT 1 OFFSET ?
-        )
-    `;
-    params.push(sensorLimit - 1);
-  }
-
-  sensorDataQuery += `
-      ORDER BY pe.event_id ASC, sd.timestamp ASC;
-  `;
-
+async function normalizeSensorData(db, start, end) {
   try {
-    const sensorData = await db.all(sensorDataQuery, params);
-    console.log("Sensor Data:", sensorData);
-    return { sensorData };
+    const rawData = await db.all(`
+      SELECT sd.sensor_id, sd.timestamp, sd.value, g.name AS group_name, s.name AS sensor_name,
+             MIN(sd.value) OVER(PARTITION BY sd.sensor_id) AS min_value,
+             MAX(sd.value) OVER(PARTITION BY sd.sensor_id) AS max_value
+      FROM SensorData sd
+      JOIN Sensors s ON sd.sensor_id = s.sensor_id
+      JOIN Groups g ON s.group_id = g.group_id
+      WHERE sd.timestamp BETWEEN ? AND ?
+    `, [start, end]);
+
+    return rawData.map(({ sensor_id, timestamp, value, group_name, min_value, max_value }) => ({
+      sensor_id,
+      timestamp,
+      normalized_value: max_value !== min_value
+        ? (value - min_value) / (max_value - min_value)
+        : 0.5, // Default to midpoint if all values are identical
+      group_name,
+      raw_value: value,
+    }));
   } catch (error) {
-    console.error("Error fetching sliding window data:", error);
+    console.error("Error normalizing sensor data:", error.message);
     throw error;
   }
 }
+
+
+async function fetchSlidingWindowData(db, start, end) {
+  console.log("Fetching data for window:", { start, end });
+
+  try {
+    const normalizedData = await normalizeSensorData(db, start, end);
+    console.log("Normalized Data:", normalizedData);
+
+    return { sensorData: normalizedData };
+  } catch (error) {
+    console.error("Error fetching sliding window data:", error.message);
+    throw error;
+  }
+}
+
 
 export default {
   initializeDatabase,

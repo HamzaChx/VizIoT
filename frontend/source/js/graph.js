@@ -1,5 +1,5 @@
 let gr = null;
-const sensorBuffers = {}; // Buffers for each sensor { sensorId: { x: [], y: [] } }
+const sensorBuffers = {}; // Buffers for each sensor { sensorId: { x: [], y: [], group: '' } }
 
 /**
  * Initializes the GR graph and sets the viewport.
@@ -18,23 +18,20 @@ function initializeGraph(canvasId) {
 /**
  * Processes incoming graph data and appends it to the appropriate sensor buffers.
  * @param {Array} newGraphData - Array of new data points for multiple sensors.
- *                              Each point should have { sensorId, x, y }.
+ *                              Each point should have { sensorId, x, y, group }.
  */
 function updateBuffers(newGraphData) {
     newGraphData.forEach((point) => {
-        const { sensorId, x, y } = point;
-
-        // Map binary values to numeric for visualization
-        const numericY = y === true ? 1 : y === false ? 0 : y;
+        const { sensorId, x, y, group } = point;
 
         if (!sensorBuffers[sensorId]) {
             // Initialize buffers for the sensor if not already present
-            sensorBuffers[sensorId] = { x: [], y: [] };
+            sensorBuffers[sensorId] = { x: [], y: [], group };
         }
 
         const sensorBuffer = sensorBuffers[sensorId];
         sensorBuffer.x.push(x);
-        sensorBuffer.y.push(numericY);
+        sensorBuffer.y.push(y);
 
         // Keep buffers within a reasonable size for continuous plotting
         if (sensorBuffer.x.length > 200) {
@@ -60,18 +57,16 @@ function startDrawing() {
         }
 
         // Calculate global data range across all sensors
-        let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity;
-        Object.values(sensorBuffers).forEach(({ x, y }) => {
+        let xMin = Infinity, xMax = -Infinity, yMin = 0, yMax = 1; // Fixed range for normalized values
+        Object.values(sensorBuffers).forEach(({ x }) => {
             if (x.length > 0) {
                 xMin = Math.min(xMin, x[0]);
                 xMax = Math.max(xMax, x[x.length - 1]);
-                yMin = Math.min(yMin, ...y, 0); // Include 0 for binary
-                yMax = Math.max(yMax, ...y, 1); // Include 1 for binary
             }
         });
 
         // If no valid range, skip drawing
-        if (xMin === Infinity || xMax === -Infinity || yMin === Infinity || yMax === -Infinity) {
+        if (xMin === Infinity || xMax === -Infinity) {
             requestAnimationFrame(drawFrame);
             return;
         }
@@ -93,16 +88,11 @@ function startDrawing() {
 
         // Plot polylines for each sensor
         let lineColorIndex = 2; // Start with color index 2 for different sensors
-        Object.entries(sensorBuffers).forEach(([sensorId, { x, y }]) => {
+        Object.entries(sensorBuffers).forEach(([sensorId, { x, y, group }]) => {
             if (x.length > 0 && y.length > 0) {
+                const color = groupColor(group);
                 gr.setlinecolorind(lineColorIndex++);
-                gr.polyline(x.length, x, y);
-
-                // Highlight binary sensors with markers
-                if (y.every((value) => value === 0 || value === 1)) {
-                    gr.setmarkercolorind(lineColorIndex);
-                    gr.polymarker(x.length, x, y);
-                }
+                gr.polyline(x.length, x, y, { color });
             }
         });
 
@@ -112,6 +102,20 @@ function startDrawing() {
 
     // Start the animation loop
     requestAnimationFrame(drawFrame);
+}
+
+/**
+ * Determines the color for a group.
+ * @param {string} groupName - Name of the group.
+ * @returns {string} - Hex or RGB color.
+ */
+function groupColor(groupName) {
+    const groupColors = {
+        power: '#1f77b4',
+        temperature: '#ff7f0e',
+        pressure: '#2ca02c',
+    };
+    return groupColors[groupName] || '#000000'; // Default to black
 }
 
 export { initializeGraph, updateBuffers, startDrawing };

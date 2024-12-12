@@ -18,39 +18,38 @@ function formatDateWithOffset(date) {
 export const startSlidingWindowStream = (res, db, config) => {
     let startTime = new Date('2023-04-28T17:01:02.00+02:00'); // Static start time
     let endTime = new Date(startTime.getTime() + config.slidingWindowDuration);
-
+  
     const fetchData = async () => {
-        try {
-            const { sensorData } = await database.fetchSlidingWindowData(
-                db,
-                formatDateWithOffset(startTime),
-                formatDateWithOffset(endTime)
-            );
-
-            if (sensorData && sensorData.length > 0) {
-                res.write(`data: ${JSON.stringify({ sensorData })}\n\n`);
-            } else {
-                res.write('data: { "message": "No new data" }\n\n');
-            }
-
-            // Update sliding window
-            startTime = new Date(startTime.getTime() + config.windowIncrement);
-            endTime = new Date(endTime.getTime() + config.windowIncrement);
-        } catch (error) {
-            console.error(`Error fetching sliding window data: ${error.message}`);
-        }
+      try {
+        // Fetch preloaded data for the current window
+        const { sensorData } = await database.fetchSlidingWindowData(
+          db,
+          formatDateWithOffset(startTime),
+          formatDateWithOffset(endTime)
+        );
+  
+        // Send the data to the client
+        res.write(`data: ${JSON.stringify({ sensorData })}\n\n`);
+  
+        // Increment the window
+        startTime = new Date(startTime.getTime() + config.windowIncrement);
+        endTime = new Date(endTime.getTime() + config.windowIncrement);
+      } catch (error) {
+        console.error(`Error fetching sliding window data: ${error.message}`);
+      }
     };
-
+  
     // Start the fetch interval
     const fetchIntervalId = setInterval(fetchData, config.streamInterval);
-
+  
     // Stop streaming when client disconnects
     res.on('close', () => {
-        console.log('Client disconnected. Cleaning up stream.');
-        clearInterval(fetchIntervalId); // Stop fetching data
-        res.end(); // End the response stream
+      console.log('Client disconnected. Cleaning up stream.');
+      clearInterval(fetchIntervalId);
+      res.end();
     });
-
+  
     // Fetch the first batch immediately
     fetchData();
-};
+  };
+  

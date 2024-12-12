@@ -1,6 +1,7 @@
 import { initializeGraph, startDrawing, updateBuffers } from './graph.js';
 
 let eventSource = null;
+let startTime = null; // To store the start time of the data stream
 
 /**
  * Starts listening to the sliding window data stream using SSE.
@@ -27,14 +28,20 @@ function startSlidingWindowStream(canvasId) {
                 return;
             }
 
-            // Transform and update the buffers with new data
+            // Set the start time if not already set
+            if (!startTime && sensorData.length > 0) {
+                startTime = Date.parse(sensorData[0].timestamp); // Parse the first timestamp
+            }
+
+            // Transform and update the buffers with relative time
             const transformedData = sensorData.map((entry) => ({
-                sensorId: entry.sensor_id, // Keep track of the sensor
-                x: new Date(entry.timestamp).getTime() / 1000, // Convert timestamp to seconds
-                y: entry.value, // Use the sensor value as the Y-coordinate
+                sensorId: entry.sensor_id,               // Keep track of the sensor
+                x: (Date.parse(entry.timestamp) - startTime) / 1000, // Relative time in seconds
+                y: entry.normalized_value,              // Use the normalized value as Y-coordinate
+                group: entry.group_name,                // Group name for styling
             }));
 
-            // Ensure all received data is added to the buffer within the sliding window
+            // Update buffers with transformed data
             updateBuffers(transformedData);
         } catch (error) {
             console.error('Error processing sliding window data:', error);
@@ -46,7 +53,6 @@ function startSlidingWindowStream(canvasId) {
         console.error('Sliding window stream encountered an error:', error);
         stopSlidingWindowStream(); // Cleanup
     };
-
 }
 
 /**
@@ -56,6 +62,7 @@ function stopSlidingWindowStream() {
     if (eventSource) {
         eventSource.close();
         eventSource = null;
+        startTime = null; // Reset start time
         console.log('Sliding window stream stopped. Connection closed with the server.');
     }
 }
