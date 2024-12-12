@@ -1,6 +1,7 @@
 import sqlite3 from "sqlite3";
 import { open } from "sqlite";
 import fs from "fs/promises";
+import yaml from "js-yaml";
 
 async function initializeDatabase() {
   const db = await open({
@@ -8,11 +9,21 @@ async function initializeDatabase() {
     driver: sqlite3.Database,
   });
 
+  // Create 'Groups' table
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS Groups (
+      group_id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE
+    );
+  `);
+
   // Create 'Sensors' table
   await db.exec(`
     CREATE TABLE IF NOT EXISTS Sensors (
       sensor_id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL UNIQUE
+      name TEXT NOT NULL UNIQUE,
+      group_id INTEGER,
+      FOREIGN KEY (group_id) REFERENCES Groups(group_id) ON DELETE SET NULL
     );
   `);
 
@@ -57,81 +68,122 @@ async function initializeDatabase() {
 async function storeSensorData(sensorData) {
   const db = await initializeDatabase();
 
-  // Helper function to parse binary strings
-  function parseBinary(value) {
-      const binaryMapping = {
-          "closed": 0, "opened": 1,
-          "true": 1, "false": 0,
-          "active": 1, "inactive": 0
-      };
-      const normalizedValue = value?.toLowerCase();
-      return binaryMapping[normalizedValue] !== undefined ? binaryMapping[normalizedValue] : null;
-  }
+  const binaryMapping = {
+    "closed": 0, "opened": 1,
+    "true": 1, "false": 0,
+    "active": 1, "inactive": 0
+  };
 
-  // Helper function to label encode strings
-  const stringLabelMap = new Map(); // Global map for consistent label encoding
-  function labelEncode(value) {
-      if (!stringLabelMap.has(value)) {
-          stringLabelMap.set(value, stringLabelMap.size + 1);
-      }
-      return stringLabelMap.get(value);
-  }
+  const stringLabelMap = new Map();
+
+  const parseBinary = (value) => binaryMapping[value?.toLowerCase()] ?? null;
+
+  const labelEncode = (value) => {
+    if (!stringLabelMap.has(value)) {
+      stringLabelMap.set(value, stringLabelMap.size + 1);
+    }
+    return stringLabelMap.get(value);
+  };
 
   try {
-      await db.run("BEGIN TRANSACTION");
+    await db.run("BEGIN TRANSACTION");
 
-      for (const [sensorName, dataPoints] of sensorData) {
-          // Insert or ignore sensor name
-          await db.run("INSERT OR IGNORE INTO Sensors (name) VALUES (?)", [sensorName]);
+    for (const [sensorName, dataPoints] of sensorData) {
+      await db.run("INSERT OR IGNORE INTO Sensors (name) VALUES (?)", [sensorName]);
 
-          // Get sensor_id
-          const sensor = await db.get("SELECT sensor_id FROM Sensors WHERE name = ?", [sensorName]);
-          if (!sensor) {
-              console.warn(`Sensor ${sensorName} could not be retrieved or created.`);
-              continue;
-          }
-          const { sensor_id } = sensor;
+      const { sensor_id } = await db.get(
+        "SELECT sensor_id FROM Sensors WHERE name = ?",
+        [sensorName]
+      ) || {};
 
-          // Process and insert data points
-          for (const [timestamp, value] of Object.entries(dataPoints)) {
-              let processedValue = value;
-              let originalValue = null; // Default to null for non-string values
-
-              if (value === null || value === undefined) {
-                  continue;
-              }
-
-              if (typeof value === "string") {
-                  originalValue = value; // Save the original string value
-                  processedValue = parseBinary(value);
-
-                  if (processedValue === null) {
-                      processedValue = labelEncode(value); // If not binary, label encode it
-                  }
-              }
-
-              try {
-                  // Use INSERT OR REPLACE to handle duplicate entries
-                  await db.run(
-                      `INSERT OR REPLACE INTO SensorData (sensor_id, timestamp, value, original_value)
-                       VALUES (?, ?, ?, ?)`,
-                      [sensor_id, timestamp, processedValue, originalValue]
-                  );
-              } catch (dbError) {
-                  console.error(`Failed to insert or replace data for sensor ${sensorName} at ${timestamp}:`, dbError.message);
-              }
-          }
+      if (!sensor_id) {
+        console.warn(`Sensor ${sensorName} could not be retrieved or created.`);
+        continue;
       }
 
-      await db.run("COMMIT");
+      const insertDataPoint = async (timestamp, rawValue) => {
+        if (rawValue == null) return;
+
+        const isString = typeof rawValue === "string";
+        const originalValue = isString ? rawValue : null;
+        const processedValue = isString
+          ? parseBinary(rawValue) ?? labelEncode(rawValue)
+          : rawValue;
+
+        await db.run(
+          `INSERT OR REPLACE INTO SensorData 
+           (sensor_id, timestamp, value, original_value)
+           VALUES (?, ?, ?, ?)`,
+          [sensor_id, timestamp, processedValue, originalValue]
+        );
+      };
+
+      await Promise.all(
+        Object.entries(dataPoints).map(([timestamp, value]) =>
+          insertDataPoint(timestamp, value).catch((error) =>
+            console.error(`Error inserting data for ${sensorName} at ${timestamp}:`, error.message)
+          )
+        )
+      );
+    }
+
+    await db.run("COMMIT");
   } catch (error) {
-      console.error("Error storing sensor data:", error);
-      await db.run("ROLLBACK");
+    console.error("Transaction failed:", error);
+    await db.run("ROLLBACK");
   } finally {
-      await db.close();
+    await db.close();
   }
 }
 
+async function storeSensorGroups(yamlFilePath) {
+  const db = await initializeDatabase();
+
+  try {
+    const yamlContent = await fs.readFile(yamlFilePath, 'utf-8');
+    const groups = yaml.load(yamlContent);
+
+    await db.run("BEGIN TRANSACTION");
+
+    for (const group of groups) {
+      const groupName = group.group.id;
+
+      // Insert the group into the Groups table
+      await db.run(
+        "INSERT OR IGNORE INTO Groups (name) VALUES (?)",
+        [groupName]
+      );
+
+      // Retrieve the group_id
+      const { group_id } = await db.get(
+        "SELECT group_id FROM Groups WHERE name = ?",
+        [groupName]
+      ) || {};
+
+      if (!group_id) {
+        console.error(`Failed to retrieve group_id for ${groupName}`);
+        continue;
+      }
+
+      // Assign group_id to each sensor in the group
+      const sensors = group.group.sensors.map((sensor) => Object.keys(sensor)[0]);
+      for (const sensorName of sensors) {
+        await db.run(
+          "UPDATE Sensors SET group_id = ? WHERE name = ?",
+          [group_id, sensorName]
+        );
+      }
+    }
+
+    await db.run("COMMIT");
+    console.log("Sensor groups successfully stored and assigned.");
+  } catch (error) {
+    console.error("Failed to store sensor groups:", error.message);
+    await db.run("ROLLBACK");
+  } finally {
+    await db.close();
+  }
+}
 
 
 async function storeSensorEvents(processEvents) {
@@ -196,7 +248,7 @@ async function storeSensorEvents(processEvents) {
 }
 
 // Function to process and store data
-async function processAndStore(sensorDataFilePath, eventFilePath) {
+async function processAndStore(sensorDataFilePath, eventFilePath, yamlFilePath) {
   try {
     const sensorData = JSON.parse(
       await fs.readFile(sensorDataFilePath, "utf-8")
@@ -205,6 +257,7 @@ async function processAndStore(sensorDataFilePath, eventFilePath) {
 
     await storeSensorData(sensorData);
     await storeSensorEvents(processEvents);
+    await storeSensorGroups(yamlFilePath);
 
     console.log("All data successfully stored in the database.");
   } catch (error) {
