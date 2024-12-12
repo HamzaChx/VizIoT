@@ -13,25 +13,24 @@ function formatDateWithOffset(date) {
 }
 
 /**
- * Utility function to handle sliding window logic.
+ * Utility function to handle sliding window logic for all sensors.
  */
-export const startSlidingWindowStream = (res, db, sensorId, config) => {
-    let startTime = new Date('2023-04-28T17:01:02.00+02:00'); // TODO: Change to be a dynamic start time
+export const startSlidingWindowStream = (res, db, config) => {
+    let startTime = new Date('2023-04-28T17:01:02.00+02:00'); // Static start time
     let endTime = new Date(startTime.getTime() + config.slidingWindowDuration);
-    let dataBuffer = []; // Buffer for received data
 
-    // Fetch data and update the buffer
     const fetchData = async () => {
         try {
             const { sensorData } = await database.fetchSlidingWindowData(
                 db,
                 formatDateWithOffset(startTime),
-                formatDateWithOffset(endTime),
-                sensorId
+                formatDateWithOffset(endTime)
             );
 
             if (sensorData && sensorData.length > 0) {
-                dataBuffer.push(...sensorData); // Add new data to the buffer
+                res.write(`data: ${JSON.stringify({ sensorData })}\n\n`);
+            } else {
+                res.write('data: { "message": "No new data" }\n\n');
             }
 
             // Update sliding window
@@ -42,30 +41,16 @@ export const startSlidingWindowStream = (res, db, sensorId, config) => {
         }
     };
 
-    // Send data from the buffer
-    const sendData = () => {
-        if (dataBuffer.length > 0) {
-            res.write(`data: ${JSON.stringify({ sensorData: dataBuffer })}\n\n`);
-            dataBuffer = []; // Clear buffer after sending
-        } else {
-            res.write('data: { "message": "No new data" }\n\n'); // Send empty update
-        }
-    };
-
-    // Start fetch and send intervals
-    const fetchIntervalId = setInterval(fetchData, config.windowIncrement);
-    const sendIntervalId = setInterval(sendData, config.streamInterval);
+    // Start the fetch interval
+    const fetchIntervalId = setInterval(fetchData, config.streamInterval);
 
     // Stop streaming when client disconnects
     res.on('close', () => {
-        console.log(`Client disconnected for sensor ID: ${sensorId}`);
-        clearInterval(fetchIntervalId);
-        clearInterval(sendIntervalId);
-        res.end();
+        console.log('Client disconnected. Cleaning up stream.');
+        clearInterval(fetchIntervalId); // Stop fetching data
+        res.end(); // End the response stream
     });
 
     // Fetch the first batch immediately
     fetchData();
-    // Send the first batch immediately
-    sendData();
 };

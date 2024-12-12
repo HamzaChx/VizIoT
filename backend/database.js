@@ -60,7 +60,7 @@ async function storeSensorData(sensorData) {
   // Helper function to parse binary strings
   function parseBinary(value) {
       const binaryMapping = {
-          "close": 0, "open": 1,
+          "closed": 0, "opened": 1,
           "true": 1, "false": 0,
           "active": 1, "inactive": 0
       };
@@ -212,35 +212,42 @@ async function processAndStore(sensorDataFilePath, eventFilePath) {
   }
 }
 
-async function fetchSlidingWindowData(db, start, end, sensorId = null) {
+async function fetchSlidingWindowData(db, start, end, sensorLimit = null) {
   console.log("Fetching data for window:", { start, end });
 
-  // Query to fetch SensorData and associated sensor names
   let sensorDataQuery = `
-    SELECT sd.sensor_id, sd.timestamp, sd.value, pe.event_id
-    FROM ProcessEvents pe
-    JOIN SensorData sd ON pe.sensor_id = sd.sensor_id
-    WHERE sd.timestamp BETWEEN ? AND ?
+      SELECT sd.sensor_id, sd.timestamp, sd.value, pe.event_id
+      FROM ProcessEvents pe
+      JOIN SensorData sd ON pe.sensor_id = sd.sensor_id
+      WHERE sd.timestamp BETWEEN ? AND ?
   `;
   const params = [start, end];
 
-  // Add filter for specific sensor if sensorId is provided
-  if (sensorId) {
-    sensorDataQuery += ` AND sd.sensor_id = ?`;
-    params.push(sensorId);
+  // Limit the number of sensors if `sensorLimit` is provided
+  if (sensorLimit) {
+    sensorDataQuery += `
+        AND pe.event_id <= (
+            SELECT event_id
+            FROM ProcessEvents
+            ORDER BY event_id ASC
+            LIMIT 1 OFFSET ?
+        )
+    `;
+    params.push(sensorLimit - 1);
   }
 
-  // Ensure the results are ordered by timestamp
   sensorDataQuery += `
       ORDER BY pe.event_id ASC, sd.timestamp ASC;
   `;
 
-  // Execute the query
-  const sensorData = await db.all(sensorDataQuery, params);
-
-  console.log("Sensor Data:", sensorData);
-
-  return { sensorData };
+  try {
+    const sensorData = await db.all(sensorDataQuery, params);
+    console.log("Sensor Data:", sensorData);
+    return { sensorData };
+  } catch (error) {
+    console.error("Error fetching sliding window data:", error);
+    throw error;
+  }
 }
 
 export default {
