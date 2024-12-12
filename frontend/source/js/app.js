@@ -25,12 +25,12 @@ function hideInitialAlert() {
 }
 
 // Attach event listeners to buttons
+
 document.getElementById('start-button').addEventListener('click', () => {
     const canvasId = 'example-canvas';
-    const sensorId = 6; // TODO: Replace with the actual dymanic sensor ID
-    startSlidingWindowStream(canvasId, sensorId);
+    startSlidingWindowStream(canvasId);
     showMessage('Data stream started successfully!', 'success');
-    hideInitialAlert(); // Remove the initial alert when play is pressed
+    hideInitialAlert();
 });
 
 document.getElementById('stop-button').addEventListener('click', () => {
@@ -38,13 +38,13 @@ document.getElementById('stop-button').addEventListener('click', () => {
     showMessage('Streaming of the data stopped.', 'warning');
 });
 
-document.getElementById("sensor-slider").addEventListener("input", async (event) => {
-    const sensorLimit = parseInt(event.target.value, 10);
-    document.getElementById("sensor-slider-label").textContent = `Sensors Visible: ${sensorLimit}`;
+// document.getElementById("sensor-slider").addEventListener("input", async (event) => {
+//     const sensorLimit = parseInt(event.target.value, 10);
+//     document.getElementById("sensor-slider-label").textContent = `Sensors Visible: ${sensorLimit}`;
 
-    // Fetch data for the specified number of sensors
-    const { sensorData } = await fetchSlidingWindowData(db, startTime, endTime, sensorLimit);
+//     // Fetch data for the specified number of sensors
+//     const { sensorData } = await fetchSlidingWindowData(db, startTime, endTime, sensorLimit);
 
-    // Update the graph
-    updateGraph(sensorData);
-});
+//     // Update the graph
+//     updateGraph(sensorData);
+// });
