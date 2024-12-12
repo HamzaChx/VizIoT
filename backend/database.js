@@ -60,7 +60,7 @@ async function storeSensorData(sensorData) {
   // Helper function to parse binary strings
   function parseBinary(value) {
       const binaryMapping = {
-          "close": 0, "open": 1,
+          "closed": 0, "opened": 1,
           "true": 1, "false": 0,
           "active": 1, "inactive": 0
       };
