@@ -363,6 +363,5 @@ export default {
   storeSensorData,
   storeSensorEvents,
   processAndStore,
-  fetchSlidingWindowData,
   fetchSlidingWindowDataIntervals
 };
