@@ -87,12 +87,11 @@ function startDrawing() {
         );
 
         // Plot polylines for each sensor
-        let lineColorIndex = 2; // Start with color index 2 for different sensors
+        let lineColorIndex = 1; // Start with color index 2 for different sensors
         Object.entries(sensorBuffers).forEach(([sensorId, { x, y, group }]) => {
             if (x.length > 0 && y.length > 0) {
-                const color = groupColor(group);
                 gr.setlinecolorind(lineColorIndex++);
-                gr.polyline(x.length, x, y, { color });
+                gr.polyline(x.length, x, y);
             }
         });
 
@@ -102,20 +101,6 @@ function startDrawing() {
 
     // Start the animation loop
     requestAnimationFrame(drawFrame);
-}
-
-/**
- * Determines the color for a group.
- * @param {string} groupName - Name of the group.
- * @returns {string} - Hex or RGB color.
- */
-function groupColor(groupName) {
-    const groupColors = {
-        power: '#1f77b4',
-        temperature: '#ff7f0e',
-        pressure: '#2ca02c',
-    };
-    return groupColors[groupName] || '#000000'; // Default to black
 }
 
 export { initializeGraph, updateBuffers, startDrawing };

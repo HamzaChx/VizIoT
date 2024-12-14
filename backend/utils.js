@@ -21,8 +21,8 @@ export const startSlidingWindowStream = (res, db, config) => {
   
     const fetchData = async () => {
       try {
-        // Fetch preloaded data for the current window
-        const { sensorData } = await database.fetchSlidingWindowData(
+        // Fetch preloaded data for the current window with intervals
+        const { sensorData } = await database.fetchSlidingWindowDataWithIntervals(
           db,
           formatDateWithOffset(startTime),
           formatDateWithOffset(endTime)
