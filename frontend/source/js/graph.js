@@ -44,13 +44,22 @@ function updateBuffers(newGraphData) {
 /**
  * Continuously draws the graph with updated data for multiple sensors.
  */
+
+let isDrawing = false;
 function startDrawing() {
     if (!gr) {
         console.error('GR instance not initialized.');
         return;
     }
 
+    isDrawing = true;
+
     function drawFrame() {
+
+        if (!isDrawing) {
+            return; // Exit the loop if drawing is stopped
+        }
+
         if (Object.keys(sensorBuffers).length === 0) {
             requestAnimationFrame(drawFrame);
             return; // Skip frame if no data is available
@@ -90,6 +99,7 @@ function startDrawing() {
         let lineColorIndex = 1; // Start with color index 2 for different sensors
         Object.entries(sensorBuffers).forEach(([sensorId, { x, y, group }]) => {
             if (x.length > 0 && y.length > 0) {
+                console.log(`Plotting sensor ${sensorId} with group ${group}`);
                 gr.setlinecolorind(lineColorIndex++);
                 gr.polyline(x.length, x, y);
             }
@@ -103,4 +113,8 @@ function startDrawing() {
     requestAnimationFrame(drawFrame);
 }
 
-export { initializeGraph, updateBuffers, startDrawing };
+function stopDrawing() {
+    isDrawing = false;
+}
+
+export { initializeGraph, updateBuffers, startDrawing, stopDrawing };

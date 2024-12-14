@@ -265,46 +265,6 @@ async function processAndStore(sensorDataFilePath, eventFilePath, yamlFilePath) 
   }
 }
 
-// async function normalizeSensorData(db, start, end) {
-//   try {
-//     const rawData = await db.all(`
-//       SELECT sd.sensor_id, sd.timestamp, sd.value, g.name AS group_name, s.name AS sensor_name,
-//              MIN(sd.value) OVER(PARTITION BY sd.sensor_id) AS min_value,
-//              MAX(sd.value) OVER(PARTITION BY sd.sensor_id) AS max_value
-//       FROM SensorData sd
-//       JOIN Sensors s ON sd.sensor_id = s.sensor_id
-//       JOIN Groups g ON s.group_id = g.group_id
-//       WHERE sd.timestamp BETWEEN ? AND ?
-//     `, [start, end]);
-
-//     return rawData.map(({ sensor_id, timestamp, value, group_name, min_value, max_value }) => ({
-//       sensor_id,
-//       timestamp,
-//       normalized_value: max_value !== min_value
-//         ? (value - min_value) / (max_value - min_value)
-//         : 0.5, // Default to midpoint if all values are identical
-//       group_name,
-//       raw_value: value,
-//     }));
-//   } catch (error) {
-//     console.error("Error normalizing sensor data:", error.message);
-//     throw error;
-//   }
-// }
-
-// async function fetchSlidingWindowData(db, start, end) {
-
-//   try {
-//     const normalizedData = await normalizeSensorData(db, start, end);
-//     console.log("Normalized Data:", normalizedData);
-
-//     return { sensorData: normalizedData };
-//   } catch (error) {
-//     console.error("Error fetching sliding window data:", error.message);
-//     throw error;
-//   }
-// }
-
 async function fetchSlidingWindowDataIntervals(db, start, end) {
   try {
     // Fetch sensor data with normalized values and group assignments
@@ -363,5 +323,5 @@ export default {
   storeSensorData,
   storeSensorEvents,
   processAndStore,
-  fetchSlidingWindowDataIntervals
+  fetchSlidingWindowDataIntervals,
 };

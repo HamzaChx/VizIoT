@@ -9,6 +9,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Enable CORS to allow requests from the frontend
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, '../frontend'), {}));
+
 // Configurations
 const SLIDING_WINDOW_CONFIG = {
   slidingWindowDuration: 30 * 1000, // Duration of the window
@@ -16,10 +21,9 @@ const SLIDING_WINDOW_CONFIG = {
   streamInterval: (1000 / 24), // Controls the interval at which updates are sent to the client
 };
 
-// Enable CORS to allow requests from the frontend
-app.use(cors());
-app.use(express.json());
-app.use(express.static(path.join(__dirname, '../frontend'), {}));
+app.get('/api/config', (req, res) => {
+  res.json(SLIDING_WINDOW_CONFIG);
+});
 
 // Endpoint to load log data into the database
 app.get('/load-log', async (req, res) => {
@@ -51,7 +55,6 @@ app.get('/stream-sliding-window', async (req, res) => {
   }
 });
 
-
 // Endpoint to get all sensors
 app.get('/api/sensors', async (req, res) => {
   try {
@@ -61,19 +64,6 @@ app.get('/api/sensors', async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).send('Error fetching sensors.');
-  }
-});
-
-// Endpoint to get events for a specific sensor
-app.get('/api/sensors/:id/events', async (req, res) => {
-  try {
-    const db = await database.initializeDatabase();
-    const sensorId = req.params.id;
-    const events = await db.all('SELECT * FROM event WHERE sensor_id = ?', [sensorId]);
-    res.json(events);
-  } catch (error) {
-    console.error(error);
-    res.status(500).send('Error fetching events.');
   }
 });
 

@@ -16,13 +16,13 @@ function formatDateWithOffset(date) {
  * Utility function to handle sliding window logic for all sensors.
  */
 export const startSlidingWindowStream = (res, db, config) => {
-    let startTime = new Date('2023-04-28T17:01:02.00+02:00'); // Static start time
+    let startTime = new Date('2023-04-28T17:00:12.79+02:00'); // Static start time
     let endTime = new Date(startTime.getTime() + config.slidingWindowDuration);
   
     const fetchData = async () => {
       try {
         // Fetch preloaded data for the current window with intervals
-        const { sensorData } = await database.fetchSlidingWindowDataWithIntervals(
+        const { sensorData } = await database.fetchSlidingWindowDataIntervals(
           db,
           formatDateWithOffset(startTime),
           formatDateWithOffset(endTime)
