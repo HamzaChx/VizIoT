@@ -22,6 +22,7 @@ async function initializeDatabase() {
     CREATE TABLE IF NOT EXISTS Sensors (
       sensor_id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL UNIQUE,
+      type TEXT,
       group_id INTEGER,
       FOREIGN KEY (group_id) REFERENCES Groups(group_id) ON DELETE SET NULL
     );
@@ -68,47 +69,59 @@ async function initializeDatabase() {
 async function storeSensorData(sensorData) {
   const db = await initializeDatabase();
 
+  // Maintain separate mappings for each sensor
+  const stringLabelMaps = new Map();
+
   const binaryMapping = {
     "closed": 0, "opened": 1,
     "true": 1, "false": 0,
     "active": 1, "inactive": 0
   };
 
-  const stringLabelMap = new Map();
-
   const parseBinary = (value) => binaryMapping[value?.toLowerCase()] ?? null;
 
-  const labelEncode = (value) => {
-    if (!stringLabelMap.has(value)) {
-      stringLabelMap.set(value, stringLabelMap.size + 1);
+  const labelEncode = (sensorName, value) => {
+    if (!stringLabelMaps.has(sensorName)) {
+      stringLabelMaps.set(sensorName, new Map());
     }
-    return stringLabelMap.get(value);
+    const sensorMap = stringLabelMaps.get(sensorName);
+
+    if (!sensorMap.has(value)) {
+      sensorMap.set(value, sensorMap.size); // Assign a new label if value is new
+    }
+    return sensorMap.get(value);
   };
 
   try {
     await db.run("BEGIN TRANSACTION");
 
     for (const [sensorName, dataPoints] of sensorData) {
-      await db.run("INSERT OR IGNORE INTO Sensors (name) VALUES (?)", [sensorName]);
-
-      const { sensor_id } = await db.get(
-        "SELECT sensor_id FROM Sensors WHERE name = ?",
+      // Retrieve sensor type
+      const sensor = await db.get(
+        "SELECT sensor_id, type FROM Sensors WHERE name = ?",
         [sensorName]
-      ) || {};
+      );
 
-      if (!sensor_id) {
+      if (!sensor) {
         console.warn(`Sensor ${sensorName} could not be retrieved or created.`);
         continue;
       }
 
+      const { sensor_id, type } = sensor;
+
       const insertDataPoint = async (timestamp, rawValue) => {
         if (rawValue == null) return;
 
-        const isString = typeof rawValue === "string";
-        const originalValue = isString ? rawValue : null;
-        const processedValue = isString
-          ? parseBinary(rawValue) ?? labelEncode(rawValue)
-          : rawValue;
+        let processedValue;
+        const originalValue = typeof rawValue === "string" ? rawValue : null;
+
+        if (type === "boolean") {
+          processedValue = parseBinary(rawValue);
+        } else if (type === "string") {
+          processedValue = labelEncode(sensorName, rawValue);
+        } else {
+          processedValue = rawValue; // For integer and float types
+        }
 
         await db.run(
           `INSERT OR REPLACE INTO SensorData 
@@ -135,6 +148,7 @@ async function storeSensorData(sensorData) {
     await db.close();
   }
 }
+
 
 async function storeSensorGroups(yamlFilePath) {
   const db = await initializeDatabase();
@@ -165,14 +179,33 @@ async function storeSensorGroups(yamlFilePath) {
         continue;
       }
 
-      // Assign group_id to each sensor in the group
-      const sensors = group.group.sensors.map((sensor) => Object.keys(sensor)[0]);
-      for (const sensorName of sensors) {
+      for (const sensor of group.group.sensors) {
+        const sensorName = Object.keys(sensor)[0];
+        const sensorType = sensor[sensorName]?.data || "unknown"; // Default to "unknown" if type is missing
+
+        // Insert or update sensor information
         await db.run(
-          "UPDATE Sensors SET group_id = ? WHERE name = ?",
-          [group_id, sensorName]
+          `INSERT OR IGNORE INTO Sensors (name, type, group_id)
+           VALUES (?, ?, ?)`,
+          [sensorName, sensorType, group_id]
+        );
+
+        // Update the group_id if the sensor already exists
+        await db.run(
+          `UPDATE Sensors SET group_id = ?, type = ?
+           WHERE name = ?`,
+          [group_id, sensorType, sensorName]
         );
       }
+
+      // // Assign group_id to each sensor in the group
+      // const sensors = group.group.sensors.map((sensor) => Object.keys(sensor)[0]);
+      // for (const sensorName of sensors) {
+      //   await db.run(
+      //     "UPDATE Sensors SET group_id = ? WHERE name = ?",
+      //     [group_id, sensorName]
+      //   );
+      // }
     }
 
     await db.run("COMMIT");
