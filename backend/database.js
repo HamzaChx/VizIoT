@@ -66,11 +66,29 @@ async function initializeDatabase() {
   return db;
 }
 
+
+// Updated label encoding logic for discrete sensors
+const labelEncode = (() => {
+  const stringLabelMap = new Map();
+
+  return (value) => {
+    if (value == null || typeof value !== "string" || value.trim() === "") {
+      return null; // Handle invalid values
+    }
+
+    // Normalize the string value
+    const normalizedValue = value.trim().toLowerCase();
+
+    if (!stringLabelMap.has(normalizedValue)) {
+      stringLabelMap.set(normalizedValue, stringLabelMap.size);
+    }
+    return stringLabelMap.get(normalizedValue);
+  };
+})();
+
+
 async function storeSensorData(sensorData) {
   const db = await initializeDatabase();
-
-  // Maintain separate mappings for each sensor
-  const stringLabelMaps = new Map();
 
   const binaryMapping = {
     "closed": 0, "opened": 1,
@@ -80,48 +98,30 @@ async function storeSensorData(sensorData) {
 
   const parseBinary = (value) => binaryMapping[value?.toLowerCase()] ?? null;
 
-  const labelEncode = (sensorName, value) => {
-    if (!stringLabelMaps.has(sensorName)) {
-      stringLabelMaps.set(sensorName, new Map());
-    }
-    const sensorMap = stringLabelMaps.get(sensorName);
-
-    if (!sensorMap.has(value)) {
-      sensorMap.set(value, sensorMap.size); // Assign a new label if value is new
-    }
-    return sensorMap.get(value);
-  };
-
   try {
     await db.run("BEGIN TRANSACTION");
 
     for (const [sensorName, dataPoints] of sensorData) {
-      // Retrieve sensor type
-      const sensor = await db.get(
-        "SELECT sensor_id, type FROM Sensors WHERE name = ?",
-        [sensorName]
-      );
+      await db.run("INSERT OR IGNORE INTO Sensors (name) VALUES (?)", [sensorName]);
 
-      if (!sensor) {
+      const { sensor_id } = await db.get(
+        "SELECT sensor_id FROM Sensors WHERE name = ?",
+        [sensorName]
+      ) || {};
+
+      if (!sensor_id) {
         console.warn(`Sensor ${sensorName} could not be retrieved or created.`);
         continue;
       }
 
-      const { sensor_id, type } = sensor;
-
       const insertDataPoint = async (timestamp, rawValue) => {
         if (rawValue == null) return;
 
-        let processedValue;
-        const originalValue = typeof rawValue === "string" ? rawValue : null;
-
-        if (type === "boolean") {
-          processedValue = parseBinary(rawValue);
-        } else if (type === "string") {
-          processedValue = labelEncode(sensorName, rawValue);
-        } else {
-          processedValue = rawValue; // For integer and float types
-        }
+        const isString = typeof rawValue === "string";
+        const originalValue = isString ? rawValue : null;
+        const processedValue = isString
+          ? parseBinary(rawValue) ?? labelEncode(rawValue)
+          : rawValue;
 
         await db.run(
           `INSERT OR REPLACE INTO SensorData 
@@ -148,7 +148,6 @@ async function storeSensorData(sensorData) {
     await db.close();
   }
 }
-
 
 async function storeSensorGroups(yamlFilePath) {
   const db = await initializeDatabase();
