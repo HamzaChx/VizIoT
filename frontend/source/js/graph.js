@@ -96,14 +96,37 @@ function startDrawing() {
         );
 
         // Plot polylines for each sensor
-        let lineColorIndex = 1; // Start with color index 2 for different sensors
+        let groupColorMap = {}; // Map to store the color index for each group
+        let nextColorIndex = 4; 
+
         Object.entries(sensorBuffers).forEach(([sensorId, { x, y, group }]) => {
             if (x.length > 0 && y.length > 0) {
                 console.log(`Plotting sensor ${sensorId} with group ${group}`);
-                gr.setlinecolorind(lineColorIndex++);
+
+                // Assign a new color to the group if it doesn't already have one
+                if (!(group in groupColorMap)) {
+                    groupColorMap[group] = nextColorIndex--;
+                }
+
+                // Set the line color based on the group's assigned color
+                const lineColorIndex = groupColorMap[group];
+                gr.setlinecolorind(lineColorIndex);
+
+                // Draw the polyline for the current sensor
                 gr.polyline(x.length, x, y);
             }
         });
+
+
+        // // Plot polylines for each sensor
+        // let lineColorIndex = 1; // Start with color index 2 for different sensors
+        // Object.entries(sensorBuffers).forEach(([sensorId, { x, y, group }]) => {
+        //     if (x.length > 0 && y.length > 0) {
+        //         console.log(`Plotting sensor ${sensorId} with group ${group}`);
+        //         gr.setlinecolorind(lineColorIndex++);
+        //         gr.polyline(x.length, x, y);
+        //     }
+        // });
 
         // Request the next frame
         requestAnimationFrame(drawFrame);
