@@ -21,7 +21,9 @@ canvas {
     }
 }
 
-#tooltip {
-    font-family: Arial, sans-serif;
-    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
-}
+#legend-container {
+    border: 1px solid #ddd;
+    padding: 10px;
+    background-color: #fff;
+  }
+  

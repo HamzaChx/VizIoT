@@ -7,7 +7,7 @@ import { startSlidingWindowStream } from './utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3005;
 
 // Enable CORS to allow requests from the frontend
 app.use(cors());
@@ -48,7 +48,10 @@ app.get('/stream-sliding-window', async (req, res) => {
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
-      startSlidingWindowStream(res, db, SLIDING_WINDOW_CONFIG);
+      
+    // const startParam = req.query.start ? new Date(req.query.start) : null;
+    startSlidingWindowStream(res, db, SLIDING_WINDOW_CONFIG);
+
   } catch (error) {
       console.error(`Error initializing database: ${error.message}`);
       res.status(500).send('Failed to initialize database');

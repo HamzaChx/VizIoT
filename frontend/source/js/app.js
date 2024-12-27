@@ -26,7 +26,7 @@ function hideInitialAlert() {
 
 // Attach event listeners to buttons
 
-document.getElementById('start-button').addEventListener('click', () => {
+document.getElementById('play-button').addEventListener('click', () => {
     const canvasId = 'example-canvas';
     startSlidingWindowStream(canvasId);
     showMessage('Data stream started successfully!', 'success');
@@ -38,13 +38,3 @@ document.getElementById('stop-button').addEventListener('click', () => {
     showMessage('Streaming of the data stopped.', 'warning');
 });
 
-// document.getElementById("sensor-slider").addEventListener("input", async (event) => {
-//     const sensorLimit = parseInt(event.target.value, 10);
-//     document.getElementById("sensor-slider-label").textContent = `Sensors Visible: ${sensorLimit}`;
-
-//     // Fetch data for the specified number of sensors
-//     const { sensorData } = await fetchSlidingWindowData(db, startTime, endTime, sensorLimit);
-
-//     // Update the graph
-//     updateGraph(sensorData);
-// });

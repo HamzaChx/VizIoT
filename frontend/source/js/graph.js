@@ -117,17 +117,6 @@ function startDrawing() {
             }
         });
 
-
-        // // Plot polylines for each sensor
-        // let lineColorIndex = 1; // Start with color index 2 for different sensors
-        // Object.entries(sensorBuffers).forEach(([sensorId, { x, y, group }]) => {
-        //     if (x.length > 0 && y.length > 0) {
-        //         console.log(`Plotting sensor ${sensorId} with group ${group}`);
-        //         gr.setlinecolorind(lineColorIndex++);
-        //         gr.polyline(x.length, x, y);
-        //     }
-        // });
-
         // Request the next frame
         requestAnimationFrame(drawFrame);
     }

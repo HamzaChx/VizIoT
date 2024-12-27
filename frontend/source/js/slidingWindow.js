@@ -1,5 +1,4 @@
 import { initializeGraph, startDrawing, updateBuffers, stopDrawing } from './graph.js';
-import { startLoadingBar, stopLoadingBar } from './progressBar.js';
 
 let eventSource = null;
 let startTime = null; // To store the start time of the data stream
@@ -14,7 +13,6 @@ function startSlidingWindowStream(canvasId) {
         return;
     }
 
-    startLoadingBar();
     initializeGraph(canvasId);
     startDrawing();
 
@@ -73,7 +71,6 @@ function stopSlidingWindowStream() {
     }
 
     stopDrawing();
-    stopLoadingBar();
 
 }
 
