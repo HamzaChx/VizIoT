@@ -41,6 +41,52 @@ function updateBuffers(newGraphData) {
     });
 }
 
+const legendList = document.getElementById("legend-list");
+
+function updateLegend(groupColorMap) {
+    // Clear the legend before populating it
+    legendList.innerHTML = "";
+
+    Object.entries(groupColorMap).forEach(([group, colorIndex]) => {
+        // Create a legend item
+        const legendItem = document.createElement("li");
+        legendItem.style.display = "flex";
+        legendItem.style.alignItems = "center";
+        legendItem.style.marginBottom = "10px";
+
+        // Color box
+        const colorBox = document.createElement("div");
+        colorBox.style.width = "20px";
+        colorBox.style.height = "20px";
+        colorBox.style.backgroundColor = getGRColor(colorIndex); // Helper function to get color
+        colorBox.style.marginRight = "10px";
+
+        // Group label
+        const label = document.createElement("span");
+        label.textContent = group;
+
+        legendItem.appendChild(colorBox);
+        legendItem.appendChild(label);
+
+        legendList.appendChild(legendItem);
+    });
+}
+
+function getGRColor(colorIndex) {
+    const grColorMap = {
+        8: "#00008B", // Dark Blue
+        7: "#FF00FF", // Pink
+        6: "#FFFF00", // Yellow
+        5: "#00FFFF", // Cyan
+        4: "#3357FF", // Blue
+        3: "#33FF57", // Green
+        2: "#FF0000", // Red
+        1: "#000000"  // Black
+    };
+    return grColorMap[colorIndex] || "#000000"; // Default to black if colorIndex is not mapped
+}
+
+
 /**
  * Continuously draws the graph with updated data for multiple sensors.
  */
@@ -89,10 +135,11 @@ function startDrawing() {
         gr.setlinecolorind(1);
         gr.grid(0.25, 0.25, 0, 0, 2, 2);
         gr.axes(
-            (xMax - xMin) / 10 || 1,
-            (yMax - yMin) / 10 || 1,
-            xMin, yMin,
-            2, 2, 0.005
+            (xMax - xMin) / 10 || 1, // Major tick spacing for x-axis
+            (yMax - yMin) / 10 || 1, // Major tick spacing for y-axis
+            xMin, yMin,              // Origin for the axes
+            2, 0,                    // x-axis labeled, y-axis not labeled
+            0.005                    // Tick mark length
         );
 
         // Plot polylines for each sensor
@@ -106,6 +153,9 @@ function startDrawing() {
                 // Assign a new color to the group if it doesn't already have one
                 if (!(group in groupColorMap)) {
                     groupColorMap[group] = nextColorIndex--;
+                    if (nextColorIndex <= 1) {
+                        nextColorIndex = 8;
+                    }
                 }
 
                 // Set the line color based on the group's assigned color
@@ -116,6 +166,8 @@ function startDrawing() {
                 gr.polyline(x.length, x, y);
             }
         });
+
+        updateLegend(groupColorMap);
 
         // Request the next frame
         requestAnimationFrame(drawFrame);
