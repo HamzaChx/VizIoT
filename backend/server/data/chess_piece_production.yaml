@@ -1,6 +1,6 @@
 ---
 - group:
-    id: state
+    id: State
     timestamp: timestamp
     sensors:
     - State_progStatus:
@@ -40,7 +40,7 @@
         data-min: 0.0
         data-max: 4.9675
 - group:
-    id: program
+    id: Program
     timestamp: timestamp
     sensors:
     - Program_progName1:
@@ -137,7 +137,7 @@
         data-min: -30000.000000000004
         data-max: 30000.000000000004
 - group:
-    id: power
+    id: Power
     timestamp: timestamp
     sensors:
     - MaxxTurn45_Axes_Power_Active_Sum:
@@ -225,7 +225,7 @@
         data-min: -2346.5390625
         data-max: 5081.0107421875
 - group:
-    id: spindle
+    id: Spindle
     timestamp: timestamp
     sensors:
     - Spindle_actSpeed:
@@ -249,7 +249,7 @@
         data-min: 296.0
         data-max: 720.0 
 - group:
-    id: clamping_system
+    id: ClampingSystem
     timestamp: timestamp
     sensors:
     - ClampingSystem1:
@@ -261,7 +261,7 @@
         type: binary
         data: string
 - group:
-    id: binary
+    id: BinarySensors
     timestamp: timestamp
     sensors:
     - Opened:
@@ -285,7 +285,7 @@
         type: binary
         data: boolean
 - group:
-    id: other
+    id: StringSensors
     timestamp: timestamp
     sensors:
     - NC:

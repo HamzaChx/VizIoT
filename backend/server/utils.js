@@ -1,4 +1,4 @@
-import database from './database.js';
+import { fetchSlidingWindowDataIntervals } from "../database/dataFetching.js";
 
 /**
  * Utility function to format a date string with offset.
@@ -22,7 +22,7 @@ export const startSlidingWindowStream = (res, db, config) => {
   const fetchData = async () => {
     try {
       // Fetch preloaded data for the current window with intervals
-      const { sensorData, stopStream } = await database.fetchSlidingWindowDataIntervals(
+      const { sensorData, stopStream } = await fetchSlidingWindowDataIntervals(
         db,
         formatDateWithOffset(startTime),
         formatDateWithOffset(endTime)

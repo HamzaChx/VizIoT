@@ -1,0 +1,91 @@
+import express from "express";
+import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
+import { startSlidingWindowStream } from "../server/utils.js";
+import { initializeDatabase } from "../database/db.js";
+import { processAndStore } from "../database/dataStorage.js";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const app = express();
+const PORT = process.env.PORT || 3005;
+
+// Enable CORS to allow requests from the frontend
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, "../../frontend"), {}));
+
+// Configurations
+const SLIDING_WINDOW_CONFIG = {
+  slidingWindowDuration: 30 * 1000, // Duration of the window
+  windowIncrement: 1000 / 24, // Determines how much time the sliding window moves forward on each increment
+  streamInterval: 1000 / 24, // Controls the interval at which updates are sent to the client
+};
+
+app.get("/api/config", (req, res) => {
+  res.json(SLIDING_WINDOW_CONFIG);
+});
+
+// Endpoint to load log data into the database
+app.get("/load-log", async (req, res) => {
+  try {
+    const sensorDataFilePath = path.join(
+      __dirname,
+      "data/sensor_data_stream.json"
+    );
+    const eventFilePath = path.join(
+      __dirname,
+      "data/chess_piece_production_j_result.json"
+    );
+    const yamlFilePath = path.join(
+      __dirname,
+      "data/chess_piece_production.yaml"
+    );
+
+    await processAndStore(sensorDataFilePath, eventFilePath, yamlFilePath);
+
+    res.send("Log data successfully loaded into the database.");
+  } catch (error) {
+    console.error(`Error loading log data: ${error.message}`);
+    res.status(500).send("Error loading log data.");
+  }
+});
+
+// Endpoint for SSE stream with sliding window
+app.get("/stream-sliding-window", async (req, res) => {
+  try {
+
+    const db = await initializeDatabase();
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+
+    startSlidingWindowStream(res, db, SLIDING_WINDOW_CONFIG);
+  } catch (error) {
+    console.error(`Error initializing database: ${error.message}`);
+    res.status(500).send("Failed to initialize database");
+  }
+});
+
+// Endpoint to get all sensors
+app.get("/api/sensors", async (req, res) => {
+  try {
+    const db = await initializeDatabase();
+    const sensors = await db.all("SELECT * FROM Sensors");
+    res.json(sensors);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error fetching sensors.");
+  }
+});
+
+// Serve the index.html for the frontend
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "../frontend/index.html"));
+});
+
+// Start the server
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
+});
