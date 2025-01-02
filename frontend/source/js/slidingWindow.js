@@ -1,5 +1,8 @@
-import { initializeGraph, startDrawing, updateBuffers, stopDrawing } from './graph.js';
+import GraphManager from './graph/graph.js';
+import { updateBuffers } from './graph/buffer.js';
 
+// Define variables for graph manager and data stream
+let graphManager = null;
 let eventSource = null;
 let startTime = null; // To store the start time of the data stream
 
@@ -13,8 +16,10 @@ function startSlidingWindowStream(canvasId) {
         return;
     }
 
-    initializeGraph(canvasId);
-    startDrawing();
+    // Initialize the graph manager and start drawing
+    graphManager = new GraphManager(canvasId);
+    graphManager.initialize();
+    graphManager.startDrawing();
 
     // Create the EventSource
     eventSource = new EventSource('/stream-sliding-window');
@@ -70,8 +75,10 @@ function stopSlidingWindowStream() {
         console.log('Sliding window stream stopped. Connection closed with the server.');
     }
 
-    stopDrawing();
-
+    if (graphManager) {
+        graphManager.stopDrawing();
+        graphManager = null;
+    }
 }
 
 export { startSlidingWindowStream, stopSlidingWindowStream };
