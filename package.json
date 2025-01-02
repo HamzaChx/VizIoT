@@ -2,12 +2,12 @@
   "name": "web_application",
   "version": "1.0.0",
   "description": "A web application for sensor data visualization",
-  "main": "backend/server.js",
+  "main": "backend/server/server.js",
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node backend/server.js",
-    "dev": "nodemon backend/server.js"
+    "start": "node backend/server/server.js",
+    "dev": "nodemon backend/server/server.js"
   },
   "keywords": [
     "sensor",
@@ -15,7 +15,7 @@
     "express",
     "frontend"
   ],
-  "author": "Your Name",
+  "author": "Hamza Chaouki",
   "license": "ISC",
   "dependencies": {
     "body-parser": "^1.20.3",
