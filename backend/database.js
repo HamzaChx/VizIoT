@@ -22,6 +22,7 @@ async function initializeDatabase() {
     CREATE TABLE IF NOT EXISTS Sensors (
       sensor_id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL UNIQUE,
+      type TEXT,
       group_id INTEGER,
       FOREIGN KEY (group_id) REFERENCES Groups(group_id) ON DELETE SET NULL
     );
@@ -65,6 +66,23 @@ async function initializeDatabase() {
   return db;
 }
 
+// Label encoding logic for string values specific to each sensor
+const labelEncode = (() => {
+  const sensorMaps = new Map(); // Maps each sensor to its string-to-label mapping
+
+  return (sensorName, value) => {
+    if (!value || typeof value !== "string") return null; // Handle invalid values
+
+    const normalizedValue = value.trim().toLowerCase();
+    if (!sensorMaps.has(sensorName)) sensorMaps.set(sensorName, new Map());
+
+    const sensorMap = sensorMaps.get(sensorName);
+    if (!sensorMap.has(normalizedValue)) sensorMap.set(normalizedValue, sensorMap.size);
+
+    return sensorMap.get(normalizedValue);
+  };
+})();
+
 async function storeSensorData(sensorData) {
   const db = await initializeDatabase();
 
@@ -74,67 +92,62 @@ async function storeSensorData(sensorData) {
     "active": 1, "inactive": 0
   };
 
-  const stringLabelMap = new Map();
-
   const parseBinary = (value) => binaryMapping[value?.toLowerCase()] ?? null;
-
-  const labelEncode = (value) => {
-    if (!stringLabelMap.has(value)) {
-      stringLabelMap.set(value, stringLabelMap.size + 1);
-    }
-    return stringLabelMap.get(value);
-  };
 
   try {
     await db.run("BEGIN TRANSACTION");
 
     for (const [sensorName, dataPoints] of sensorData) {
-      await db.run("INSERT OR IGNORE INTO Sensors (name) VALUES (?)", [sensorName]);
-
-      const { sensor_id } = await db.get(
-        "SELECT sensor_id FROM Sensors WHERE name = ?",
+      // Ensure the sensor exists
+      await db.run(
+        `INSERT OR IGNORE INTO Sensors (name, type, group_id) 
+         VALUES (?, 'unknown', NULL)`,
         [sensorName]
-      ) || {};
+      );
 
-      if (!sensor_id) {
+      const sensor = await db.get("SELECT sensor_id, type FROM Sensors WHERE name = ?", [sensorName]);
+      if (!sensor) {
         console.warn(`Sensor ${sensorName} could not be retrieved or created.`);
         continue;
       }
 
-      const insertDataPoint = async (timestamp, rawValue) => {
-        if (rawValue == null) return;
+      const { sensor_id, type } = sensor;
 
-        const isString = typeof rawValue === "string";
-        const originalValue = isString ? rawValue : null;
-        const processedValue = isString
-          ? parseBinary(rawValue) ?? labelEncode(rawValue)
-          : rawValue;
-
-        await db.run(
-          `INSERT OR REPLACE INTO SensorData 
-           (sensor_id, timestamp, value, original_value)
-           VALUES (?, ?, ?, ?)`,
-          [sensor_id, timestamp, processedValue, originalValue]
-        );
-      };
-
+      // Insert data points for the sensor
       await Promise.all(
-        Object.entries(dataPoints).map(([timestamp, value]) =>
-          insertDataPoint(timestamp, value).catch((error) =>
-            console.error(`Error inserting data for ${sensorName} at ${timestamp}:`, error.message)
-          )
-        )
+        Object.entries(dataPoints).map(async ([timestamp, rawValue]) => {
+          if (rawValue == null) return;
+
+          let processedValue;
+          const originalValue = typeof rawValue === "string" ? rawValue : null;
+
+          if (type === "boolean") {
+            processedValue = parseBinary(rawValue);
+          } else if (type === "string") {
+            processedValue = labelEncode(sensorName, rawValue);
+          } else {
+            processedValue = rawValue; // For numerical values
+          }
+
+          await db.run(
+            `INSERT OR REPLACE INTO SensorData 
+             (sensor_id, timestamp, value, original_value)
+             VALUES (?, ?, ?, ?)`,
+            [sensor_id, timestamp, processedValue, originalValue]
+          );
+        })
       );
     }
 
     await db.run("COMMIT");
   } catch (error) {
-    console.error("Transaction failed:", error);
+    console.error("Transaction failed:", error.message);
     await db.run("ROLLBACK");
   } finally {
     await db.close();
   }
 }
+
 
 async function storeSensorGroups(yamlFilePath) {
   const db = await initializeDatabase();
@@ -165,14 +178,25 @@ async function storeSensorGroups(yamlFilePath) {
         continue;
       }
 
-      // Assign group_id to each sensor in the group
-      const sensors = group.group.sensors.map((sensor) => Object.keys(sensor)[0]);
-      for (const sensorName of sensors) {
+      for (const sensor of group.group.sensors) {
+        const sensorName = Object.keys(sensor)[0];
+        const sensorType = sensor[sensorName]?.data || "unknown"; // Default to "unknown" if type is missing
+
+        // Insert or update sensor information
         await db.run(
-          "UPDATE Sensors SET group_id = ? WHERE name = ?",
-          [group_id, sensorName]
+          `INSERT OR IGNORE INTO Sensors (name, type, group_id)
+           VALUES (?, ?, ?)`,
+          [sensorName, sensorType, group_id]
+        );
+
+        // Update the group_id if the sensor already exists
+        await db.run(
+          `UPDATE Sensors SET group_id = ?, type = ?
+           WHERE name = ?`,
+          [group_id, sensorType, sensorName]
         );
       }
+
     }
 
     await db.run("COMMIT");
@@ -265,8 +289,9 @@ async function processAndStore(sensorDataFilePath, eventFilePath, yamlFilePath) 
   }
 }
 
-async function normalizeSensorData(db, start, end) {
+async function fetchSlidingWindowDataIntervals(db, start, end) {
   try {
+    // Fetch sensor data with normalized values and group assignments
     const rawData = await db.all(`
       SELECT sd.sensor_id, sd.timestamp, sd.value, g.name AS group_name, s.name AS sensor_name,
              MIN(sd.value) OVER(PARTITION BY sd.sensor_id) AS min_value,
@@ -277,41 +302,61 @@ async function normalizeSensorData(db, start, end) {
       WHERE sd.timestamp BETWEEN ? AND ?
     `, [start, end]);
 
-    return rawData.map(({ sensor_id, timestamp, value, group_name, min_value, max_value }) => ({
-      sensor_id,
-      timestamp,
-      normalized_value: max_value !== min_value
+    if (rawData.length === 0) {
+      return { sensorData: [], stopStream: true };
+    }
+
+    // Dynamically calculate the groups present in the sliding window
+    const groupNames = [...new Set(rawData.map((entry) => entry.group_name))];
+
+    // Calculate intervals for the groups in the sliding window
+    const intervalSize = 1 / groupNames.length;
+    const groupIntervals = groupNames.reduce((intervals, groupName, index) => {
+      intervals[groupName] = {
+        group_min: index * intervalSize,
+        group_max: (index + 1) * intervalSize,
+      };
+      return intervals;
+    }, {});
+
+    // Enrich the data with group intervals, normalized values, and sensor names
+    const enrichedData = rawData.map(({ sensor_id, sensor_name, timestamp, value, group_name, min_value, max_value }) => {
+      const { group_min, group_max } = groupIntervals[group_name];
+      const normalized_value = max_value !== min_value
         ? (value - min_value) / (max_value - min_value)
-        : 0.5, // Default to midpoint if all values are identical
-      group_name,
-      raw_value: value,
-    }));
+        : 0.5; // Default to midpoint if all values are identical
+
+      return {
+        sensor_id,
+        sensor_name, // Add the sensor name to the data
+        timestamp,
+        normalized_value,
+        group_name,
+        raw_value: value,
+        group_min,
+        group_max,
+      };
+    });
+
+
+    // Print enriched data only for the group "other"
+    // const otherData = enrichedData.filter(({ group_name }) => group_name === "other");
+    // console.log("Other:", otherData);
+    console.log("Data:", enrichedData);
+
+    //console.log("Data:", enrichedData);
+
+    return { sensorData: enrichedData };
   } catch (error) {
-    console.error("Error normalizing sensor data:", error.message);
+    console.error('Error fetching sliding window data with intervals:', error.message);
     throw error;
   }
 }
-
-
-async function fetchSlidingWindowData(db, start, end) {
-  console.log("Fetching data for window:", { start, end });
-
-  try {
-    const normalizedData = await normalizeSensorData(db, start, end);
-    console.log("Normalized Data:", normalizedData);
-
-    return { sensorData: normalizedData };
-  } catch (error) {
-    console.error("Error fetching sliding window data:", error.message);
-    throw error;
-  }
-}
-
 
 export default {
   initializeDatabase,
   storeSensorData,
   storeSensorEvents,
   processAndStore,
-  fetchSlidingWindowData,
+  fetchSlidingWindowDataIntervals,
 };

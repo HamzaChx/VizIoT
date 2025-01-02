@@ -1,72 +1,82 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VizIoT</title>
-    <link rel="icon" type="image/ico" href="public/favicon.ico">
 
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VizIoT</title>
+  <link rel="icon" type="image/ico" href="public/favicon.ico">
 
-    <!-- Custom Styles -->
-    <link rel="stylesheet" href="source/css/styles.css" />
-  </head>
-  <body class="d-flex flex-column min-vh-100">
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
 
-    <!-- Navbar -->
-    <nav class="navbar navbar-dark bg-dark">
-      <div class="container-fluid">
-        <a class="navbar-brand" href="https://www.cs.cit.tum.de/bpm/chair/" target="_blank" rel="noopener noreferrer">
-          <img src="public/tum-logo.png" alt="TUM Logo" height="30" width="50" />
-          Bachelor Thesis Project
-        </a>
+<body class="d-flex flex-column min-vh-100">
+
+  <!-- Navbar -->
+  <nav class="navbar navbar-dark bg-dark">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="https://www.cs.cit.tum.de/bpm/chair/" target="_blank" rel="noopener noreferrer">
+        <img src="public/tum-logo.png" alt="TUM Logo" height="30" width="50" />
+        Bachelor Thesis Project
+      </a>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="flex-grow-1 bg-light py-4">
+    <div class="container d-flex flex-column align-items-center">
+
+      <!-- Initial Alert -->
+      <div id="initial-alert" class="alert alert-info text-center" role="alert" style="max-width: 600px;">
+        Press play to start the visualization
       </div>
-    </nav>
 
-    <!-- Main Content -->
-    <main class="flex-grow-1 bg-light py-4">
-      <div class="container d-flex flex-column align-items-center">
+      <!-- Start/End Alert -->
+      <div id="alert-box" class="alert d-none" role="alert"></div>
 
-        <div id="initial-alert" class="alert alert-info" role="alert" style="max-width: 600px; transition: opacity 0.5s ease-in-out;">
-          Press play to start the visualization
-        </div>
+      <!-- Controls -->
+      <div class="d-flex justify-content-center gap-3 mb-4">
+        <button id="play-button" class="btn btn-primary d-flex align-items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="me-2" viewBox="0 0 16 16">
+            <path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393"/>
+          </svg>
+          Play
+        </button>
+        <button id="stop-button" class="btn btn-danger d-flex align-items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="me-2" viewBox="0 0 16 16">
+            <path d="M5 3.5h6A1.5 1.5 0 0 1 12.5 5v6a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 11V5A1.5 1.5 0 0 1 5 3.5"/>
+          </svg>
+          Stop
+        </button>
+      </div>
 
-        <!-- Start/End Alert -->
-        <div id="alert-box" class="alert d-none" role="alert" style="transition: opacity 0.5s ease-in-out;"></div>
-
-        <!-- Controls -->
-        <div class="d-flex justify-content-center gap-3 mb-4">
-          <button id="start-button" class="btn btn-primary">Play</button>
-          <button id="stop-button" class="btn btn-danger">Stop</button>
-          <input
-            type="range"
-            id="sensor-slider"
-            min="1"
-            max="45"
-            step="1"
-            value="1"
-          />
-          <label id="sensor-slider-label">Sensors Visible: 1</label>
-
-        </div>
-
-        <!-- Graph Container -->
-        <div class="card shadow w-100" style="max-width: 1200px;">
-          <div class="card-body p-3" style="height: 70vh;">
+      <div class="card shadow w-100" style="max-width: 1200px; height: 70vh;">
+        <div class="card-body row h-100">
+          <!-- Legend Container -->
+          <div id="legend-container" class="col-2 d-flex flex-column overflow-auto">
+            <h5 class="card-title">Legend</h5>
+            <ul id="legend-list" class="list-unstyled mb-0"></ul>
+          </div>
+          
+          <!-- Graph Container -->
+          <div class="col-10">
             <canvas id="example-canvas" class="w-100 h-100"></canvas>
           </div>
         </div>
-      </div>
-    </main>
+      </div>       
 
-    <!-- GR Library -->
-    <script src="source/js/gr.js"></script>
+    </div>
+  </main>
 
-    <!-- App Script -->
-    <script type="module" src="source/js/app.js" defer></script>
+  <!-- GR Library -->
+  <script src="source/js/gr.js"></script>
 
-    <!-- Bootstrap Bundle -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
-  </body>
+  <!-- App Script -->
+  <script type="module" src="source/js/app.js" defer></script>
+
+  <!-- Bootstrap Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
 </html>
