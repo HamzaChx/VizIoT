@@ -54,11 +54,14 @@ app.get("/load-log", async (req, res) => {
 // Endpoint for SSE stream with sliding window
 app.get("/stream-sliding-window", async (req, res) => {
   try {
+
+    const db = await initializeDatabase();
+
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
 
-    startSlidingWindowStream(res, SLIDING_WINDOW_CONFIG);
+    startSlidingWindowStream(res, db, SLIDING_WINDOW_CONFIG);
   } catch (error) {
     console.error(`Error initializing database: ${error.message}`);
     res.status(500).send("Failed to initialize database");

@@ -29,13 +29,18 @@ const labelEncode = (() => {
     }
 
     const encodedValue = sensorMap.get(normalizedValue);
-    const flipFlopNormalizedValue =
-      (encodedValue % 2 === 0 ? encodedValue : -encodedValue) /
-      (sensorMap.size - 1 || 1); // Flip-flop normalized value
+
+    // Normalize within [0, 1] based on the number of unique values for the sensor
+    const totalValues = sensorMap.size;
+    const normalized = totalValues > 1 ? encodedValue / (totalValues - 1) : 0; // Single value maps to 0
+
+    // Optional: Flip-flop for transitions (add a small offset for better visualization)
+    const flipFlopNormalized =
+      encodedValue % 2 === 0 ? normalized : normalized * -1;
 
     return {
       encoded: encodedValue,
-      normalized: flipFlopNormalizedValue,
+      normalized: flipFlopNormalized,
     };
   };
 })();
@@ -76,11 +81,7 @@ export async function storeSensorData(sensorData) {
           processedValue = parseBinary(rawValue);
         } else if (type === "string") {
           const { encoded, normalized } = labelEncode(sensorName, rawValue);
-          processedValue = normalized;
-          console.log(
-            `Normalized value for sensor ${sensorName}:`,
-            processedValue
-          );
+          processedValue = 0;
         } else {
           processedValue = rawValue;
         }
