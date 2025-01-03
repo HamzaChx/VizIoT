@@ -1,4 +1,4 @@
-export async function fetchSlidingWindowDataIntervals(db, start, end) {
+export async function fetchSlidingWindowData(db, start, end) {
     try {
       // Fetch sensor data with normalized values and group assignments
       const rawData = await db.all(

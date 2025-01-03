@@ -64,7 +64,6 @@ export default class GraphManager {
         this.stopDrawing(); // Stop rendering
         clearSensorBuffers(); // Clear data buffers
         this.gr.clearws(); // Clear the graph workspace
-        console.log("Graph reset to initial state.");
     }
 
     /**
@@ -91,16 +90,16 @@ export default class GraphManager {
         this.gr.grid(0.25, 0.25, 0, 0, 2, 2);
 
         // Custom axis labels for the x-axis
-        const xTickInterval = Math.ceil((xMax - xMin) / 10) || 1; // Ensure at least 1 unit tick
+        const xTickInterval = Math.ceil((xMax - xMin) / 10) || 1;
         this.gr.axes(
-            xTickInterval,                        // x-axis tick interval
-            (yMax - yMin) / 10 || 1,              // y-axis tick interval
-            xMin,                                 // x-axis minimum
-            yMin,                                 // y-axis minimum
-            2,                                    // Draw both axes
-            0,                                    // No labels for y-axis grid
-            0.005,                                // Size of tick marks
-            (tickValue) => Math.round(tickValue) // Formatter for x-axis labels
+            xTickInterval,                        
+            (yMax - yMin) / 10 || 1,              
+            xMin,                          
+            yMin,
+            2,                        
+            0,                              
+            0.005,
+            (tickValue) => Math.round(tickValue)
         );
 
         // Plot data and update legend
