@@ -89,7 +89,19 @@ export default class GraphManager {
         // Draw grid and axes
         this.gr.setlinecolorind(1);
         this.gr.grid(0.25, 0.25, 0, 0, 2, 2);
-        this.gr.axes((xMax - xMin) / 10 || 1, (yMax - yMin) / 10 || 1, xMin, yMin, 2, 0, 0.005);
+
+        // Custom axis labels for the x-axis
+        const xTickInterval = Math.ceil((xMax - xMin) / 10) || 1; // Ensure at least 1 unit tick
+        this.gr.axes(
+            xTickInterval,                        // x-axis tick interval
+            (yMax - yMin) / 10 || 1,              // y-axis tick interval
+            xMin,                                 // x-axis minimum
+            yMin,                                 // y-axis minimum
+            2,                                    // Draw both axes
+            0,                                    // No labels for y-axis grid
+            0.005,                                // Size of tick marks
+            (tickValue) => Math.round(tickValue) // Formatter for x-axis labels
+        );
 
         // Plot data and update legend
         const groupColorMap = this.plotSensorData();

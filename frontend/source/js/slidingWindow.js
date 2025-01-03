@@ -27,6 +27,9 @@ document.getElementById('play-button').addEventListener('click', () => {
     graphManager.startDrawing();
 });
 
+document.getElementById('stop-button').addEventListener('click', () => {
+    stopSlidingWindowStream();
+});
 
 /**
  * Starts listening to the sliding window data stream using SSE.
@@ -96,10 +99,6 @@ function startSlidingWindowStream(canvasId) {
     };
 }
 
-document.getElementById('stop-button').addEventListener('click', () => {
-    stopSlidingWindowStream();
-});
-
 /**
  * Stops the sliding window data stream.
  */
@@ -115,7 +114,7 @@ function stopSlidingWindowStream() {
 
     if (graphManager) {
         graphManager.stopDrawing();
-        graphManager.reset(); // Clear graph completely
+        graphManager.reset();
         graphManager = null;
     }
 
