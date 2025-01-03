@@ -21,25 +21,25 @@ export const startSlidingWindowStream = (res, db, config, startTime, initialLimi
   let currentLimit = initialLimit; // Track the current sensor limit
 
   const fetchData = async () => {
-    if (isPaused) return; // Skip fetching if paused
-
+    if (isPaused) return;
+  
     try {
-      const { sensorData, stopStream } = await fetchSlidingWindowData(
+      const { sensorData, groupSensorMap, stopStream } = await fetchSlidingWindowData(
         db,
         formatDateWithOffset(startTime),
         formatDateWithOffset(endTime),
-        currentLimit // Use the current limit
+        currentLimit
       );
-
+  
       if (stopStream) {
         console.log('No more data to fetch. Stopping the stream.');
         clearInterval(fetchIntervalId);
         res.end();
         return;
       }
-
-      res.write(`data: ${JSON.stringify({ sensorData })}\n\n`);
-
+  
+      res.write(`data: ${JSON.stringify({ sensorData, groupSensorMap })}\n\n`);
+  
       startTime = new Date(startTime.getTime() + config.windowIncrement);
       endTime = new Date(endTime.getTime() + config.windowIncrement);
     } catch (error) {
@@ -47,7 +47,7 @@ export const startSlidingWindowStream = (res, db, config, startTime, initialLimi
       clearInterval(fetchIntervalId);
       res.end();
     }
-  };
+  };  
 
   const fetchIntervalId = setInterval(fetchData, config.streamInterval);
 

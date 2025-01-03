@@ -1,0 +1,9 @@
+#legend-container {
+    height: 100%; /* Ensures the container takes full height */
+  }
+  
+#legend-container .overflow-auto {
+overflow-y: auto; /* Enables vertical scrolling */
+max-height: 100%; /* Restricts the height to the parent container */
+}
+  

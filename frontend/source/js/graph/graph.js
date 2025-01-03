@@ -7,6 +7,7 @@ export default class GraphManager {
         this.gr = null;
         this.isDrawing = false;
         this.isPaused = false;
+        this.groupSensorMap = {};
     }
 
     /**
@@ -105,7 +106,7 @@ export default class GraphManager {
 
         // Plot data and update legend
         const groupColorMap = this.plotSensorData();
-        updateLegend(groupColorMap);
+        updateLegend(groupColorMap, this.groupSensorMap);
 
         // Continue rendering
         requestAnimationFrame(() => this.drawFrame());

@@ -83,7 +83,9 @@ function startSlidingWindowStream(canvasId) {
 
     eventSource.onmessage = (event) => {
         try {
-            const { sensorData } = JSON.parse(event.data);
+            const { sensorData, groupSensorMap } = JSON.parse(event.data);
+
+            graphManager.groupSensorMap = groupSensorMap;
 
             if (!sensorData || sensorData.length === 0) {
                 return;

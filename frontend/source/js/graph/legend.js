@@ -1,8 +1,9 @@
 /**
  * Updates the legend displayed in the UI.
  * @param {Object} groupColorMap - Mapping of groups to colors.
+ * @param {Object} groupSensorMap - Mapping of groups to their sensors.
  */
-export function updateLegend(groupColorMap) {
+export function updateLegend(groupColorMap, groupSensorMap) {
     const legendList = document.getElementById("legend-list");
     if (!legendList) return;
 
@@ -10,7 +11,7 @@ export function updateLegend(groupColorMap) {
 
     Object.entries(groupColorMap).forEach(([group, colorIndex]) => {
         if (colorIndex !== undefined) {
-            const legendItem = createLegendItem(group, colorIndex);
+            const legendItem = createLegendItem(group, colorIndex, groupSensorMap[group]);
             legendList.appendChild(legendItem);
         }
     });
@@ -20,13 +21,20 @@ export function updateLegend(groupColorMap) {
  * Creates a legend item for a sensor group.
  * @param {string} group - The sensor group.
  * @param {number} colorIndex - The assigned color index.
+ * @param {Array<string>} sensors - The sensors belonging to this group.
  * @returns {HTMLElement} - The legend item element.
  */
-function createLegendItem(group, colorIndex) {
+function createLegendItem(group, colorIndex, sensors) {
     const legendItem = document.createElement("li");
     legendItem.style.display = "flex";
-    legendItem.style.alignItems = "center";
-    legendItem.style.marginBottom = "10px";
+    legendItem.style.flexDirection = "column";
+    legendItem.style.alignItems = "start";
+    legendItem.style.marginBottom = "15px";
+
+    // Group title and color box
+    const titleContainer = document.createElement("div");
+    titleContainer.style.display = "flex";
+    titleContainer.style.alignItems = "center";
 
     const colorBox = document.createElement("div");
     colorBox.style.width = "20px";
@@ -37,8 +45,26 @@ function createLegendItem(group, colorIndex) {
     const label = document.createElement("span");
     label.textContent = group;
 
-    legendItem.appendChild(colorBox);
-    legendItem.appendChild(label);
+    titleContainer.appendChild(colorBox);
+    titleContainer.appendChild(label);
+
+    // Sensor list
+    const sensorList = document.createElement("ul");
+    sensorList.style.margin = "5px 0 0 30px";
+    sensorList.style.padding = "0";
+    sensorList.style.listStyleType = "disc";
+
+    if (sensors && sensors.length > 0) {
+        sensors.forEach((sensorName) => {
+            const sensorItem = document.createElement("li");
+            sensorItem.textContent = sensorName;
+            sensorList.appendChild(sensorItem);
+        });
+    }
+
+    // Append group title and sensor list to legend item
+    legendItem.appendChild(titleContainer);
+    legendItem.appendChild(sensorList);
 
     return legendItem;
 }
