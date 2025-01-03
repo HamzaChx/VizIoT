@@ -53,7 +53,6 @@ export const startSlidingWindowStream = (res, db, config, startTime, initialLimi
 
   // Listen for updates to the sensor limit
   res.on('update-limit', (newLimit) => {
-    console.log(`Updating sensor limit to: ${newLimit}`);
     currentLimit = newLimit; // Update the limit
   });
 
@@ -69,7 +68,7 @@ export const startSlidingWindowStream = (res, db, config, startTime, initialLimi
   });
 
   res.on('close', () => {
-    console.log('Client disconnected. Cleaning up stream.');
+    console.log('Stream Stopped.');
     clearInterval(fetchIntervalId);
     res.end();
   });

@@ -42,6 +42,8 @@ export async function fetchSlidingWindowData(db, start, end, limit = 1) {
           return { sensor_id, sensor_name, timestamp, normalized_value, group_name, raw_value: value, group_min, group_max };
       });
 
+      console.log(`Fetched ${enrichedData.length} entries for ${groupNames.length} groups.`);
+
       return { sensorData: enrichedData };
   } catch (error) {
       console.error("Error fetching sliding window data:", error.message);

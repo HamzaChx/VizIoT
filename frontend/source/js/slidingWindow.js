@@ -31,12 +31,13 @@ document.getElementById('stop-button').addEventListener('click', () => {
     stopSlidingWindowStream();
 });
 
-let sensorLimit = 1; // Default number of sensors
+let sensorLimit = 1;
 const slider = document.getElementById('sensor-slider');
 const sensorCountLabel = document.getElementById('sensor-count');
 
 slider.addEventListener('input', (event) => {
     const newLimit = event.target.value;
+    sensorLimit = newLimit;
     sensorCountLabel.textContent = newLimit;
 
     // Send the new limit to the backend

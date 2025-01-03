@@ -58,7 +58,6 @@ app.post('/update-limit', (req, res) => {
     return res.status(400).send('Invalid limit value');
   }
 
-  console.log(`Updating sensor limit to: ${newLimit}`);
   // Notify all active streams about the new limit
   activeStreams.forEach((stream) => {
     stream.emit('update-limit', newLimit);

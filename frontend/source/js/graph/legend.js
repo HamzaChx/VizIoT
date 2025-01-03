@@ -16,7 +16,6 @@ export function updateLegend(groupColorMap) {
     });
 }
 
-
 /**
  * Creates a legend item for a sensor group.
  * @param {string} group - The sensor group.
