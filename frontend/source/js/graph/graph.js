@@ -64,6 +64,7 @@ export default class GraphManager {
         this.stopDrawing(); // Stop rendering
         clearSensorBuffers(); // Clear data buffers
         this.gr.clearws(); // Clear the graph workspace
+        updateLegend({}); // Clear the legend
     }
 
     /**
@@ -136,7 +137,7 @@ export default class GraphManager {
         const buffers = getSensorBuffers();
         const groupColorMap = {};
         let nextColorIndex = 4;
-
+    
         Object.entries(buffers).forEach(([_, { x, y, group }]) => {
             if (x.length > 0 && y.length > 0) {
                 // Assign a color to the group if not already assigned

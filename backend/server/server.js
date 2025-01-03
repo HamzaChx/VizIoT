@@ -51,21 +51,48 @@ app.get("/load-log", async (req, res) => {
   }
 });
 
-app.get("/stream-sliding-window", async (req, res) => {
+// Endpoint to update the sensor limit dynamically
+app.post('/update-limit', (req, res) => {
+  const newLimit = parseInt(req.body.limit, 10);
+  if (isNaN(newLimit) || newLimit <= 0) {
+    return res.status(400).send('Invalid limit value');
+  }
+
+  console.log(`Updating sensor limit to: ${newLimit}`);
+  // Notify all active streams about the new limit
+  activeStreams.forEach((stream) => {
+    stream.emit('update-limit', newLimit);
+  });
+
+  res.status(200).send('Limit updated');
+});
+
+const activeStreams = new Set();
+
+app.get('/stream-sliding-window', async (req, res) => {
   try {
     const db = await initializeDatabase();
 
-    res.setHeader("Content-Type", "text/event-stream");
-    res.setHeader("Cache-Control", "no-cache");
-    res.setHeader("Connection", "keep-alive");
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    activeStreams.add(res); // Add the response to the active streams set
 
     const startQuery = req.query.start;
-    const startTime = startQuery ? new Date(startQuery) : new Date('2023-04-28T17:00:12.79+02:00'); // Default start time
+    const limit = parseInt(req.query.limit, 10) || 1;
+    const startTime = startQuery ? new Date(startQuery) : new Date('2023-04-28T17:00:12.79+02:00');
 
-    startSlidingWindowStream(res, db, SLIDING_WINDOW_CONFIG, startTime);
+    startSlidingWindowStream(res, db, SLIDING_WINDOW_CONFIG, startTime, limit);
+
+    res.on('close', () => {
+      console.log('Client disconnected. Cleaning up stream.');
+      activeStreams.delete(res); // Remove the response from the active streams set
+      res.end();
+    });
   } catch (error) {
     console.error(`Error initializing database: ${error.message}`);
-    res.status(500).send("Failed to initialize database");
+    res.status(500).send('Failed to initialize database');
   }
 });
 

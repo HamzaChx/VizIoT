@@ -9,10 +9,13 @@ export function updateLegend(groupColorMap) {
     legendList.innerHTML = ""; // Clear existing legend
 
     Object.entries(groupColorMap).forEach(([group, colorIndex]) => {
-        const legendItem = createLegendItem(group, colorIndex);
-        legendList.appendChild(legendItem);
+        if (colorIndex !== undefined) {
+            const legendItem = createLegendItem(group, colorIndex);
+            legendList.appendChild(legendItem);
+        }
     });
 }
+
 
 /**
  * Creates a legend item for a sensor group.
