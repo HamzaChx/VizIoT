@@ -18,7 +18,7 @@ export function updateLegend(groupColorMap, groupSensorMap) {
 }
 
 /**
- * Creates a legend item for a sensor group.
+ * Creates a legend item for a sensor group using Bootstrap for styling.
  * @param {string} group - The sensor group.
  * @param {number} colorIndex - The assigned color index.
  * @param {Array<string>} sensors - The sensors belonging to this group.
@@ -26,38 +26,34 @@ export function updateLegend(groupColorMap, groupSensorMap) {
  */
 function createLegendItem(group, colorIndex, sensors) {
     const legendItem = document.createElement("li");
-    legendItem.style.display = "flex";
-    legendItem.style.flexDirection = "column";
-    legendItem.style.alignItems = "start";
-    legendItem.style.marginBottom = "15px";
+    legendItem.className = "mb-3";
 
-    // Group title and color box
+    // Group title with color box
     const titleContainer = document.createElement("div");
-    titleContainer.style.display = "flex";
-    titleContainer.style.alignItems = "center";
+    titleContainer.className = "d-flex align-items-center mb-2";
 
     const colorBox = document.createElement("div");
-    colorBox.style.width = "20px";
-    colorBox.style.height = "20px";
+    colorBox.style.width = "16px";
+    colorBox.style.height = "16px";
     colorBox.style.backgroundColor = getGRColor(colorIndex);
-    colorBox.style.marginRight = "10px";
+    colorBox.className = "me-2 rounded";
 
     const label = document.createElement("span");
     label.textContent = group;
+    label.className = "fw-bold text-muted"; // Bold and muted text for the group name
 
     titleContainer.appendChild(colorBox);
     titleContainer.appendChild(label);
 
     // Sensor list
     const sensorList = document.createElement("ul");
-    sensorList.style.margin = "5px 0 0 30px";
-    sensorList.style.padding = "0";
-    sensorList.style.listStyleType = "disc";
+    sensorList.className = "list-group list-group-flush ms-3"; // Flush list group with margin-start
 
     if (sensors && sensors.length > 0) {
         sensors.forEach((sensorName) => {
             const sensorItem = document.createElement("li");
             sensorItem.textContent = sensorName;
+            sensorItem.className = "list-group-item px-0 py-1"; // Minimal padding for the list items
             sensorList.appendChild(sensorItem);
         });
     }
