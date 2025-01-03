@@ -27,3 +27,12 @@ export function updateBuffers(newGraphData) {
 export function getSensorBuffers() {
     return sensorBuffers;
 }
+
+/**
+ * Clears all sensor buffers.
+ */
+export function clearSensorBuffers() {
+    Object.keys(sensorBuffers).forEach(sensorId => {
+        delete sensorBuffers[sensorId];
+    });
+}

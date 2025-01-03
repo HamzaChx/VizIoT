@@ -31,15 +31,15 @@ app.get("/load-log", async (req, res) => {
   try {
     const sensorDataFilePath = path.join(
       __dirname,
-      "data/sensor_data_stream.json"
+      "logs/sensor_data_stream.json"
     );
     const eventFilePath = path.join(
       __dirname,
-      "data/chess_piece_production_j_result.json"
+      "logs/chess_piece_production_j_result.json"
     );
     const yamlFilePath = path.join(
       __dirname,
-      "data/chess_piece_production.yaml"
+      "logs/chess_piece_production.yaml"
     );
 
     await processAndStore(sensorDataFilePath, eventFilePath, yamlFilePath);
@@ -51,17 +51,18 @@ app.get("/load-log", async (req, res) => {
   }
 });
 
-// Endpoint for SSE stream with sliding window
 app.get("/stream-sliding-window", async (req, res) => {
   try {
-
     const db = await initializeDatabase();
 
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
 
-    startSlidingWindowStream(res, db, SLIDING_WINDOW_CONFIG);
+    const startQuery = req.query.start;
+    const startTime = startQuery ? new Date(startQuery) : new Date('2023-04-28T17:00:12.79+02:00'); // Default start time
+
+    startSlidingWindowStream(res, db, SLIDING_WINDOW_CONFIG, startTime);
   } catch (error) {
     console.error(`Error initializing database: ${error.message}`);
     res.status(500).send("Failed to initialize database");

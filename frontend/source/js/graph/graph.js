@@ -1,4 +1,4 @@
-import { getSensorBuffers } from './buffer.js';
+import { getSensorBuffers, clearSensorBuffers } from './buffer.js';
 import { updateLegend } from './legend.js';
 
 export default class GraphManager {
@@ -6,6 +6,7 @@ export default class GraphManager {
         this.canvasId = canvasId;
         this.gr = null;
         this.isDrawing = false;
+        this.isPaused = false;
     }
 
     /**
@@ -34,21 +35,43 @@ export default class GraphManager {
         }
 
         this.isDrawing = true;
+        this.isPaused = false; // Ensure it’s not paused when starting
         this.drawFrame();
     }
 
     /**
-     * Stops the graph rendering process.
+     * Pauses the graph rendering process.
+     */
+    pauseDrawing() {
+        if (this.isDrawing) {
+            this.isPaused = true;
+            console.log("Graph rendering paused.");
+        }
+    }
+
+    /**
+     * Stops the graph rendering process completely.
      */
     stopDrawing() {
         this.isDrawing = false;
+        this.isPaused = false;
+    }
+
+    /**
+     * Resets the graph by clearing buffers and reinitializing.
+     */
+    reset() {
+        this.stopDrawing(); // Stop rendering
+        clearSensorBuffers(); // Clear data buffers
+        this.gr.clearws(); // Clear the graph workspace
+        console.log("Graph reset to initial state.");
     }
 
     /**
      * Draws a single frame of the graph, including axes, grid, and sensor data.
      */
     drawFrame() {
-        if (!this.isDrawing) return;
+        if (!this.isDrawing || this.isPaused) return;
 
         // Calculate X-axis range
         const { xMin, xMax } = this.calculateXRange();
