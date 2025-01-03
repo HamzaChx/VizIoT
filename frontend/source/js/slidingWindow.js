@@ -31,11 +31,35 @@ document.getElementById('stop-button').addEventListener('click', () => {
     stopSlidingWindowStream();
 });
 
+let sensorLimit = 1;
+const slider = document.getElementById('sensor-slider');
+const sensorCountLabel = document.getElementById('sensor-count');
+
+slider.addEventListener('input', (event) => {
+    const newLimit = event.target.value;
+    sensorLimit = newLimit;
+    sensorCountLabel.textContent = newLimit;
+
+    // Send the new limit to the backend
+    fetch('/update-limit', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ limit: newLimit }),
+    }).then((response) => {
+        if (!response.ok) {
+            console.error('Failed to update sensor limit:', response.statusText);
+        }
+    }).catch((error) => {
+        console.error('Error updating sensor limit:', error);
+    });
+});
+
 /**
  * Starts listening to the sliding window data stream using SSE.
  * @param {string} canvasId - The canvas element ID for the graph.
  */
-
 function startSlidingWindowStream(canvasId) {
     if (eventSource && !isPaused) {
         console.log('Sliding window stream already active.');
@@ -55,11 +79,13 @@ function startSlidingWindowStream(canvasId) {
     graphManager.startDrawing();
 
     // Create the EventSource
-    eventSource = new EventSource(`/stream-sliding-window?start=${lastTimestamp || ''}`);
+    eventSource = new EventSource(`/stream-sliding-window?start=${lastTimestamp || ''}&limit=${sensorLimit}`);
 
     eventSource.onmessage = (event) => {
         try {
-            const { sensorData } = JSON.parse(event.data);
+            const { sensorData, groupSensorMap } = JSON.parse(event.data);
+
+            graphManager.groupSensorMap = groupSensorMap;
 
             if (!sensorData || sensorData.length === 0) {
                 return;

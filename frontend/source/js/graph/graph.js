@@ -7,6 +7,7 @@ export default class GraphManager {
         this.gr = null;
         this.isDrawing = false;
         this.isPaused = false;
+        this.groupSensorMap = {};
     }
 
     /**
@@ -64,6 +65,7 @@ export default class GraphManager {
         this.stopDrawing(); // Stop rendering
         clearSensorBuffers(); // Clear data buffers
         this.gr.clearws(); // Clear the graph workspace
+        updateLegend({}); // Clear the legend
     }
 
     /**
@@ -104,7 +106,7 @@ export default class GraphManager {
 
         // Plot data and update legend
         const groupColorMap = this.plotSensorData();
-        updateLegend(groupColorMap);
+        updateLegend(groupColorMap, this.groupSensorMap);
 
         // Continue rendering
         requestAnimationFrame(() => this.drawFrame());
@@ -136,7 +138,7 @@ export default class GraphManager {
         const buffers = getSensorBuffers();
         const groupColorMap = {};
         let nextColorIndex = 4;
-
+    
         Object.entries(buffers).forEach(([_, { x, y, group }]) => {
             if (x.length > 0 && y.length > 0) {
                 // Assign a color to the group if not already assigned
