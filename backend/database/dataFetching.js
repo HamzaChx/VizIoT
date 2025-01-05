@@ -35,7 +35,7 @@ export async function fetchSlidingWindowData(db, start, end, limit = 1) {
 
     const enrichedData = rawData.map(({ sensor_id, sensor_name, timestamp, value, group_name, min_value, max_value }) => {
       const { group_min, group_max } = groupIntervals[group_name];
-      const normalized_value = max_value !== min_value ? (value - min_value) / (max_value - min_value) : 0.5;
+      const normalized_value = max_value !== min_value ? (value - min_value) / (max_value - min_value) : max_value;
       return { sensor_id, sensor_name, timestamp, normalized_value, group_name, raw_value: value, group_min, group_max };
     });
 

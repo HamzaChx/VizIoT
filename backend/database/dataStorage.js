@@ -48,12 +48,12 @@ const labelEncode = (() => {
 export async function storeSensorData(sensorData) {
   const db = await initializeDatabase();
   const binaryMapping = {
-    closed: 0,
-    opened: 1,
-    true: 1,
-    false: 0,
-    active: 1,
-    inactive: 0,
+    "closed": 0,
+    "opened": 1,
+    "true": 1,
+    "false": 0,
+    "active": 1,
+    "inactive": 0,
   };
   const parseBinary = (value) => binaryMapping[value?.toLowerCase()] ?? null;
 
@@ -81,7 +81,7 @@ export async function storeSensorData(sensorData) {
           processedValue = parseBinary(rawValue);
         } else if (type === "string") {
           const { encoded, normalized } = labelEncode(sensorName, rawValue);
-          processedValue = 0;
+          processedValue = 0.5;
         } else {
           processedValue = rawValue;
         }
