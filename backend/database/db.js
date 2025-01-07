@@ -5,7 +5,9 @@ const CREATE_TABLE_QUERIES = {
   groups: `
     CREATE TABLE IF NOT EXISTS Groups (
       group_id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL UNIQUE
+      name TEXT NOT NULL UNIQUE,
+      group_min REAL,
+      group_max REAL
     );
   `,
   sensors: `
@@ -23,6 +25,7 @@ const CREATE_TABLE_QUERIES = {
       sensor_id INTEGER NOT NULL,
       timestamp TEXT NOT NULL,
       value REAL,
+      normalized_value REAL,
       original_value TEXT,
       FOREIGN KEY (sensor_id) REFERENCES Sensors(sensor_id) ON DELETE CASCADE,
       UNIQUE (sensor_id, timestamp)

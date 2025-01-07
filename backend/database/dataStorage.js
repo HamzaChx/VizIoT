@@ -97,6 +97,40 @@ export async function storeSensorData(sensorData) {
   });
 }
 
+export async function populateNormalizedValues() {
+  const db = await initializeDatabase();
+
+  try {
+    
+    const sensors = await db.all(`SELECT DISTINCT sensor_id FROM SensorData`);
+
+    for (const { sensor_id } of sensors) {
+
+      const minMax = await db.get(
+        `SELECT MIN(value) AS min_value, MAX(value) AS max_value
+         FROM SensorData
+         WHERE sensor_id = ?`,
+        [sensor_id]
+      );
+
+      const min = minMax?.min_value ?? 0;
+      const max = minMax?.max_value ?? 1;
+      const range = max - min || 1;
+
+      await db.run(
+        `UPDATE SensorData
+         SET normalized_value = (value - ?) / ?
+         WHERE sensor_id = ?`,
+        [min, range, sensor_id]
+      );
+
+    }
+  } catch (error) {
+    console.error("Error populating normalized values:", error.message);
+    throw error;
+  }
+}
+
 export async function storeSensorGroups(yamlFilePath) {
   const db = await initializeDatabase();
   const yamlContent = await fs.readFile(yamlFilePath, "utf-8");
@@ -174,6 +208,7 @@ export async function processAndStore(
   const processEvents = JSON.parse(await fs.readFile(eventFilePath, "utf-8"));
   await storeSensorGroups(yamlFilePath);
   await storeSensorData(sensorData);
+  await populateNormalizedValues();
   await storeSensorEvents(processEvents);
   console.log("Data successfully processed and stored.");
 }

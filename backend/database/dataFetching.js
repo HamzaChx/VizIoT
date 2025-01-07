@@ -1,10 +1,9 @@
 export async function fetchSlidingWindowData(db, start, end, limit = 1) {
   try {
+    
     const rawData = await db.all(
       `
-      SELECT sd.sensor_id, sd.timestamp, sd.value, g.name AS group_name, s.name AS sensor_name,
-             MIN(sd.value) OVER(PARTITION BY sd.sensor_id) AS min_value,
-             MAX(sd.value) OVER(PARTITION BY sd.sensor_id) AS max_value
+      SELECT sd.sensor_id, sd.timestamp, sd.normalized_value, g.name AS group_name, s.name AS sensor_name
       FROM SensorData sd
       JOIN Sensors s ON sd.sensor_id = s.sensor_id
       JOIN Groups g ON s.group_id = g.group_id
@@ -24,21 +23,32 @@ export async function fetchSlidingWindowData(db, start, end, limit = 1) {
     }
 
     const groupNames = [...new Set(rawData.map((entry) => entry.group_name))];
-    const intervalSize = 1 / groupNames.length;
+    const margin = 0.05;
+    const effectiveIntervalSize = (1 - margin * (groupNames.length - 1)) / groupNames.length;
+
     const groupIntervals = groupNames.reduce((intervals, groupName, index) => {
+      const start = index * (effectiveIntervalSize + margin);
       intervals[groupName] = {
-        group_min: index * intervalSize,
-        group_max: (index + 1) * intervalSize,
+        group_min: start,
+        group_max: start + effectiveIntervalSize,
       };
       return intervals;
     }, {});
 
-    const enrichedData = rawData.map(({ sensor_id, sensor_name, timestamp, value, group_name, min_value, max_value }) => {
+    const enrichedData = rawData.map(({ sensor_id, sensor_name, timestamp, normalized_value, group_name }) => {
       const { group_min, group_max } = groupIntervals[group_name];
-      const normalized_value = max_value !== min_value ? (value - min_value) / (max_value - min_value) : max_value;
-      return { sensor_id, sensor_name, timestamp, normalized_value, group_name, raw_value: value, group_min, group_max };
+      return {
+        sensor_id,
+        sensor_name,
+        timestamp,
+        normalized_value,
+        group_name,
+        group_min,
+        group_max,
+      };
     });
 
+    // Map each group to its sensors
     const groupSensorMap = rawData.reduce((map, { group_name, sensor_name }) => {
       if (!map[group_name]) {
         map[group_name] = [];
@@ -49,7 +59,7 @@ export async function fetchSlidingWindowData(db, start, end, limit = 1) {
       return map;
     }, {});
 
-    console.log(`Fetched ${enrichedData.length} entries for ${groupNames.length} groups.`);
+    console.log(`Fetched ${enrichedData.length} entries for ${groupNames.length} groups with margins.`);
 
     return { sensorData: enrichedData, groupSensorMap };
   } catch (error) {
