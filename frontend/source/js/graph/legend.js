@@ -7,7 +7,7 @@ export function updateLegend(groupColorMap, groupSensorMap) {
     const legendList = document.getElementById("legend-list");
     if (!legendList) return;
 
-    legendList.innerHTML = ""; // Clear existing legend
+    legendList.innerHTML = "";
 
     Object.entries(groupColorMap).forEach(([group, colorIndex]) => {
         if (colorIndex !== undefined) {
@@ -28,7 +28,6 @@ function createLegendItem(group, colorIndex, sensors) {
     const legendItem = document.createElement("li");
     legendItem.className = "mb-3";
 
-    // Group title with color box
     const titleContainer = document.createElement("div");
     titleContainer.className = "d-flex align-items-center mb-2";
 
@@ -40,25 +39,23 @@ function createLegendItem(group, colorIndex, sensors) {
 
     const label = document.createElement("span");
     label.textContent = group;
-    label.className = "fw-bold text-muted"; // Bold and muted text for the group name
+    label.className = "fw-bold text-muted";
 
     titleContainer.appendChild(colorBox);
     titleContainer.appendChild(label);
 
-    // Sensor list
     const sensorList = document.createElement("ul");
-    sensorList.className = "list-group list-group-flush ms-3"; // Flush list group with margin-start
+    sensorList.className = "list-group list-group-flush ms-3";
 
     if (sensors && sensors.length > 0) {
         sensors.forEach((sensorName) => {
             const sensorItem = document.createElement("li");
             sensorItem.textContent = sensorName;
-            sensorItem.className = "list-group-item px-0 py-1"; // Minimal padding for the list items
+            sensorItem.className = "list-group-item px-0 py-1";
             sensorList.appendChild(sensorItem);
         });
     }
 
-    // Append group title and sensor list to legend item
     legendItem.appendChild(titleContainer);
     legendItem.appendChild(sensorList);
 

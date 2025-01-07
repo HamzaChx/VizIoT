@@ -1,4 +1,3 @@
-// Function to display a message
 export function showMessage(message, type = 'info') {
     const alertBox = document.getElementById('alert-box');
     alertBox.textContent = message;
@@ -6,7 +5,6 @@ export function showMessage(message, type = 'info') {
     alertBox.classList.remove('d-none');
     alertBox.style.opacity = '1';
 
-    // Hide the alert after 3 seconds
     setTimeout(() => {
         alertBox.style.opacity = '0';
         setTimeout(() => {
@@ -15,7 +13,6 @@ export function showMessage(message, type = 'info') {
     }, 2000);
 }
 
-// Hide the initial alert
 export function hideInitialAlert() {
     const initialAlert = document.getElementById('initial-alert');
     initialAlert.style.opacity = '0';

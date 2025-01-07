@@ -12,7 +12,6 @@ export function updateBuffers(newGraphData) {
         buffer.x.push(x);
         buffer.y.push(y);
 
-        // Trim buffers
         if (buffer.x.length > maxBufferSize) {
             buffer.x.splice(0, buffer.x.length - maxBufferSize);
             buffer.y.splice(0, buffer.y.length - maxBufferSize);

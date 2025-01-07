@@ -1,26 +1,22 @@
 import GraphManager from './graph/graph.js';
 import { updateBuffers } from './graph/buffer.js';
 
-// Define variables for graph manager and data stream
 let graphManager = null;
 let eventSource = null;
-let startTime = null; // To store the start time of the data stream
-let isPaused = false; // Track pause state
-let lastTimestamp = null; // Track the last timestamp for resuming
-
+let startTime = null;
+let isPaused = false; 
+let lastTimestamp = null; 
 document.getElementById('pause-button').addEventListener('click', () => {
     if (!eventSource) return;
 
-    // Send a pause signal to the backend
     eventSource.dispatchEvent(new Event('pause'));
     graphManager.pauseDrawing();
 });
 
 document.getElementById('play-button').addEventListener('click', () => {
     if (!eventSource) {
-        startSlidingWindowStream('example-canvas'); // Reinitialize if needed
+        startSlidingWindowStream('example-canvas');
     } else {
-        // Send a resume signal to the backend
         eventSource.dispatchEvent(new Event('resume'));
     }
 
@@ -40,7 +36,6 @@ slider.addEventListener('input', (event) => {
     sensorLimit = newLimit;
     sensorCountLabel.textContent = newLimit;
 
-    // Send the new limit to the backend
     fetch('/update-limit', {
         method: 'POST',
         headers: {
@@ -66,19 +61,16 @@ function startSlidingWindowStream(canvasId) {
         return;
     }
 
-    // Resume from paused state
     if (isPaused) {
         console.log('Resuming sliding window stream...');
         isPaused = false;
         return;
     }
 
-    // Initialize the graph manager
     graphManager = new GraphManager(canvasId);
     graphManager.initialize();
     graphManager.startDrawing();
 
-    // Create the EventSource
     eventSource = new EventSource(`/stream-sliding-window?start=${lastTimestamp || ''}&limit=${sensorLimit}`);
 
     eventSource.onmessage = (event) => {
@@ -91,12 +83,10 @@ function startSlidingWindowStream(canvasId) {
                 return;
             }
 
-            // Set the start time if not already set
             if (!startTime && sensorData.length > 0) {
                 startTime = Date.parse(sensorData[0].timestamp);
             }
 
-            // Transform and update the buffers with relative time and group scaling
             const transformedData = sensorData.map((entry) => {
                 const groupRange = entry.group_max - entry.group_min;
                 const scaledY = entry.group_min + (entry.normalized_value * groupRange);
@@ -111,17 +101,15 @@ function startSlidingWindowStream(canvasId) {
 
             updateBuffers(transformedData);
 
-            // Update the last timestamp for potential resume
             lastTimestamp = sensorData[sensorData.length - 1].timestamp;
         } catch (error) {
             console.error('Error processing sliding window data:', error);
         }
     };
 
-    // Handle connection errors
     eventSource.onerror = (error) => {
         console.error('Sliding window stream encountered an error:', error);
-        stopSlidingWindowStream(); // Cleanup
+        stopSlidingWindowStream();
     };
 }
 

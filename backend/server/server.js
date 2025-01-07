@@ -10,12 +10,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3005;
 
-// Enable CORS to allow requests from the frontend
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "../../frontend"), {}));
 
-// Configurations
 const SLIDING_WINDOW_CONFIG = {
   slidingWindowDuration: 30 * 1000, // Duration of the window
   windowIncrement: 1000 / 24, // Determines how much time the sliding window moves forward on each increment
@@ -26,7 +24,7 @@ app.get("/api/config", (req, res) => {
   res.json(SLIDING_WINDOW_CONFIG);
 });
 
-// Endpoint to load log data into the database
+
 app.get("/load-log", async (req, res) => {
   try {
     const sensorDataFilePath = path.join(
@@ -51,14 +49,12 @@ app.get("/load-log", async (req, res) => {
   }
 });
 
-// Endpoint to update the sensor limit dynamically
 app.post('/update-limit', (req, res) => {
   const newLimit = parseInt(req.body.limit, 10);
   if (isNaN(newLimit) || newLimit <= 0) {
     return res.status(400).send('Invalid limit value');
   }
 
-  // Notify all active streams about the new limit
   activeStreams.forEach((stream) => {
     stream.emit('update-limit', newLimit);
   });
@@ -76,7 +72,7 @@ app.get('/stream-sliding-window', async (req, res) => {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
-    activeStreams.add(res); // Add the response to the active streams set
+    activeStreams.add(res);
 
     const startQuery = req.query.start;
     const limit = parseInt(req.query.limit, 10) || 1;
@@ -86,7 +82,7 @@ app.get('/stream-sliding-window', async (req, res) => {
 
     res.on('close', () => {
       console.log('Client disconnected. Cleaning up stream.');
-      activeStreams.delete(res); // Remove the response from the active streams set
+      activeStreams.delete(res);
       res.end();
     });
   } catch (error) {
@@ -95,7 +91,6 @@ app.get('/stream-sliding-window', async (req, res) => {
   }
 });
 
-// Endpoint to get all sensors
 app.get("/api/sensors", async (req, res) => {
   try {
     const db = await initializeDatabase();
@@ -107,12 +102,10 @@ app.get("/api/sensors", async (req, res) => {
   }
 });
 
-// Serve the index.html for the frontend
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/index.html"));
 });
 
-// Start the server
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });

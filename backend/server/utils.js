@@ -17,8 +17,8 @@ function formatDateWithOffset(date) {
  */
 export const startSlidingWindowStream = (res, db, config, startTime, initialLimit) => {
   let endTime = new Date(startTime.getTime() + config.slidingWindowDuration);
-  let isPaused = false; // Track the paused state
-  let currentLimit = initialLimit; // Track the current sensor limit
+  let isPaused = false;
+  let currentLimit = initialLimit;
 
   const fetchData = async () => {
     if (isPaused) return;
@@ -51,9 +51,8 @@ export const startSlidingWindowStream = (res, db, config, startTime, initialLimi
 
   const fetchIntervalId = setInterval(fetchData, config.streamInterval);
 
-  // Listen for updates to the sensor limit
   res.on('update-limit', (newLimit) => {
-    currentLimit = newLimit; // Update the limit
+    currentLimit = newLimit;
   });
 
   res.on('pause', () => {

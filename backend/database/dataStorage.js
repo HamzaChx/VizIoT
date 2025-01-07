@@ -7,7 +7,7 @@ import fs from "fs/promises";
 import yaml from "js-yaml";
 
 const labelEncode = (() => {
-  const sensorMaps = new Map(); // Maps each sensor to its string-to-encoding mapping
+  const sensorMaps = new Map();
 
   return (sensorName, rawValue) => {
     if (!rawValue || typeof rawValue !== "string")
@@ -15,14 +15,12 @@ const labelEncode = (() => {
 
     const normalizedValue = rawValue.trim().toLowerCase();
 
-    // Initialize map for the sensor if not already present
     if (!sensorMaps.has(sensorName)) {
       sensorMaps.set(sensorName, new Map());
     }
 
     const sensorMap = sensorMaps.get(sensorName);
 
-    // Assign a unique encoded value if not already assigned
     if (!sensorMap.has(normalizedValue)) {
       const encodedValue = sensorMap.size;
       sensorMap.set(normalizedValue, encodedValue);
@@ -30,11 +28,9 @@ const labelEncode = (() => {
 
     const encodedValue = sensorMap.get(normalizedValue);
 
-    // Normalize within [0, 1] based on the number of unique values for the sensor
     const totalValues = sensorMap.size;
-    const normalized = totalValues > 1 ? encodedValue / (totalValues - 1) : 0; // Single value maps to 0
+    const normalized = totalValues > 1 ? encodedValue / (totalValues - 1) : 0;
 
-    // Optional: Flip-flop for transitions (add a small offset for better visualization)
     const flipFlopNormalized =
       encodedValue % 2 === 0 ? normalized : normalized * -1;
 
