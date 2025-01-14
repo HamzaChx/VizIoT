@@ -3,7 +3,7 @@ import { fetchSlidingWindowData } from "../database/dataFetching.js";
 /**
  * Utility function to format a date string with offset.
  */
-function formatDateWithOffset(date) {
+export function formatDateWithOffset(date) {
     const offset = -date.getTimezoneOffset();
     const absOffsetHours = Math.abs(Math.floor(offset / 60)).toString().padStart(2, '0');
     const absOffsetMinutes = Math.abs(offset % 60).toString().padStart(2, '0');

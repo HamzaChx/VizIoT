@@ -76,7 +76,7 @@ app.get('/stream-sliding-window', async (req, res) => {
 
     const startQuery = req.query.start;
     const limit = parseInt(req.query.limit, 10) || 1;
-    const startTime = startQuery ? new Date(startQuery) : new Date('2023-04-28T17:00:12.79+02:00');
+    const startTime = startQuery ? new Date(startQuery) : new Date('2023-04-28T17:01:02.00+02:00');
 
     startSlidingWindowStream(res, db, SLIDING_WINDOW_CONFIG, startTime, limit);
 
