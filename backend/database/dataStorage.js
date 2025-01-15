@@ -5,7 +5,6 @@ import {
 } from "./db.js";
 import fs from "fs/promises";
 import yaml from "js-yaml";
-import { formatDateWithOffset } from "../server/utils.js";
 
 const labelEncode = (() => {
   const sensorMaps = new Map();

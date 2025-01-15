@@ -1,53 +1,79 @@
-import GraphManager from './graph/graph.js';
-import { updateBuffers } from './graph/buffer.js';
+import GraphManager from "./graph/graph.js";
+import { updateBuffers } from "./graph/buffer.js";
 
 let graphManager = null;
 let eventSource = null;
 let startTime = null;
-let isPaused = false; 
-let lastTimestamp = null; 
-document.getElementById('pause-button').addEventListener('click', () => {
-    if (!eventSource) return;
+let isPaused = false;
+let lastTimestamp = null;
 
-    eventSource.dispatchEvent(new Event('pause'));
-    graphManager.pauseDrawing();
+document.getElementById("pause-button").addEventListener("click", () => {
+  if (!eventSource || isPaused) return;
+
+  // Send a pause command to the server
+  fetch("/pause-stream", { method: "POST" })
+    .then((response) => {
+      if (response.ok) {
+        isPaused = true;
+        graphManager.pauseDrawing();
+      } else {
+        console.error("Failed to pause stream:", response.statusText);
+      }
+    })
+    .catch((error) => {
+      console.error("Error pausing stream:", error);
+    });
 });
 
-document.getElementById('play-button').addEventListener('click', () => {
-    if (!eventSource) {
-        startSlidingWindowStream('example-canvas');
-    } else {
-        eventSource.dispatchEvent(new Event('resume'));
-    }
+document.getElementById("play-button").addEventListener("click", () => {
+  if (!eventSource && !isPaused) {
+    startSlidingWindowStream("example-canvas");
+    return;
+  }
 
-    graphManager.startDrawing();
+  if (isPaused) {
+    fetch("/resume-stream", { method: "POST" })
+      .then((response) => {
+        if (response.ok) {
+          isPaused = false;
+          graphManager.startDrawing();
+        } else {
+          console.error("Failed to resume stream:", response.statusText);
+        }
+      })
+      .catch((error) => {
+        console.error("Error resuming stream:", error);
+      });
+  }
 });
 
-document.getElementById('stop-button').addEventListener('click', () => {
-    stopSlidingWindowStream();
+document.getElementById("stop-button").addEventListener("click", () => {
+  stopSlidingWindowStream();
 });
 
 let sensorLimit = 1;
-const slider = document.getElementById('sensor-slider');
-const sensorCountLabel = document.getElementById('sensor-count');
+const slider = document.getElementById("sensor-slider");
+const sensorCountLabel = document.getElementById("sensor-count");
 
-slider.addEventListener('input', (event) => {
-    const newLimit = event.target.value;
-    sensorLimit = newLimit;
-    sensorCountLabel.textContent = newLimit;
+slider.addEventListener("input", (event) => {
+  const newLimit = event.target.value;
+  sensorLimit = newLimit;
+  sensorCountLabel.textContent = newLimit;
 
-    fetch('/update-limit', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ limit: newLimit }),
-    }).then((response) => {
-        if (!response.ok) {
-            console.error('Failed to update sensor limit:', response.statusText);
-        }
-    }).catch((error) => {
-        console.error('Error updating sensor limit:', error);
+  fetch("/update-limit", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ limit: newLimit }),
+  })
+    .then((response) => {
+      if (!response.ok) {
+        console.error("Failed to update sensor limit:", response.statusText);
+      }
+    })
+    .catch((error) => {
+      console.error("Error updating sensor limit:", error);
     });
 });
 
@@ -56,83 +82,79 @@ slider.addEventListener('input', (event) => {
  * @param {string} canvasId - The canvas element ID for the graph.
  */
 function startSlidingWindowStream(canvasId) {
-    if (eventSource && !isPaused) {
-        console.log('Sliding window stream already active.');
-        return;
+  if (eventSource && !isPaused) {
+    console.log("Sliding window stream already active.");
+    return;
+  }
+
+  graphManager = new GraphManager(canvasId);
+  graphManager.initialize();
+  graphManager.startDrawing();
+
+  eventSource = new EventSource(
+    `/stream-sliding-window?start=${lastTimestamp || ""}&limit=${sensorLimit}`
+  );
+
+  eventSource.onmessage = (event) => {
+    try {
+      const { sensorData, groupSensorMap } = JSON.parse(event.data);
+
+      graphManager.groupSensorMap = groupSensorMap;
+
+      if (!sensorData || sensorData.length === 0) return;
+
+      if (!startTime && sensorData.length > 0) {
+        startTime = Date.parse(sensorData[0].timestamp);
+      }
+
+      const transformedData = sensorData.map((entry) => {
+        const groupRange = entry.group_max - entry.group_min;
+        const scaledY = entry.group_min + entry.normalized_value * groupRange;
+
+        return {
+          sensorId: entry.sensor_id,
+          x: (Date.parse(entry.timestamp) - startTime) / 1000,
+          y: scaledY,
+          group: entry.group_name,
+        };
+      });
+
+      updateBuffers(transformedData);
+
+      lastTimestamp = sensorData[sensorData.length - 1].timestamp;
+    } catch (error) {
+      console.error("Error processing sliding window data:", error);
     }
+  };
 
-    if (isPaused) {
-        console.log('Resuming sliding window stream...');
-        isPaused = false;
-        return;
-    }
-
-    graphManager = new GraphManager(canvasId);
-    graphManager.initialize();
-    graphManager.startDrawing();
-
-    eventSource = new EventSource(`/stream-sliding-window?start=${lastTimestamp || ''}&limit=${sensorLimit}`);
-
-    eventSource.onmessage = (event) => {
-        try {
-            const { sensorData, groupSensorMap } = JSON.parse(event.data);
-
-            graphManager.groupSensorMap = groupSensorMap;
-
-            if (!sensorData || sensorData.length === 0) {
-                return;
-            }
-
-            if (!startTime && sensorData.length > 0) {
-                startTime = Date.parse(sensorData[0].timestamp);
-            }
-
-            const transformedData = sensorData.map((entry) => {
-                const groupRange = entry.group_max - entry.group_min;
-                const scaledY = entry.group_min + (entry.normalized_value * groupRange);
-
-                return {
-                    sensorId: entry.sensor_id,
-                    x: (Date.parse(entry.timestamp) - startTime) / 1000,
-                    y: scaledY,
-                    group: entry.group_name,
-                };
-            });
-
-            updateBuffers(transformedData);
-
-            lastTimestamp = sensorData[sensorData.length - 1].timestamp;
-        } catch (error) {
-            console.error('Error processing sliding window data:', error);
-        }
-    };
-
-    eventSource.onerror = (error) => {
-        console.error('Sliding window stream encountered an error:', error);
-        stopSlidingWindowStream();
-    };
+  eventSource.onerror = () => {
+    console.error("Sliding window stream encountered an error.");
+    stopSlidingWindowStream();
+    setTimeout(() => {
+      console.log("Retrying connection to sliding window stream...");
+      startSlidingWindowStream(canvasId);
+    }, 5000);
+  };
 }
 
 /**
  * Stops the sliding window data stream.
  */
 function stopSlidingWindowStream() {
-    if (eventSource) {
-        eventSource.close();
-        eventSource = null;
-    }
+  if (eventSource) {
+    eventSource.close();
+    eventSource = null;
+  }
 
-    isPaused = false;
-    lastTimestamp = null;
-    startTime = null;
+  isPaused = false;
+  lastTimestamp = null;
+  startTime = null;
 
-    if (graphManager) {
-        graphManager.stopDrawing();
-        graphManager.reset();
-        graphManager = null;
-    }
-
-    console.log('Sliding window stream stopped and reset.');
+  if (graphManager) {
+    graphManager.stopDrawing();
+    graphManager.reset();
+    graphManager = null;
+  }
 }
 
 export { startSlidingWindowStream, stopSlidingWindowStream };

@@ -10,20 +10,22 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3005;
 
-app.use(cors());
-app.use(express.json());
-app.use(express.static(path.join(__dirname, "../../frontend"), {}));
-
 const SLIDING_WINDOW_CONFIG = {
   slidingWindowDuration: 30 * 1000, // Duration of the window
   windowIncrement: 1000 / 24, // Determines how much time the sliding window moves forward on each increment
   streamInterval: 1000 / 24, // Controls the interval at which updates are sent to the client
 };
 
+const clientState = new Map();
+const activeStreams = new Map();
+
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, "../../frontend"), {}));
+
 app.get("/api/config", (req, res) => {
   res.json(SLIDING_WINDOW_CONFIG);
 });
-
 
 app.get("/load-log", async (req, res) => {
   try {
@@ -50,46 +52,77 @@ app.get("/load-log", async (req, res) => {
 });
 
 app.post('/update-limit', (req, res) => {
-  const newLimit = parseInt(req.body.limit, 10);
-  if (isNaN(newLimit) || newLimit <= 0) {
-    return res.status(400).send('Invalid limit value');
-  }
+    const newLimit = parseInt(req.body.limit, 10);
+    if (isNaN(newLimit) || newLimit <= 0) {
+        console.error("Invalid limit value received:", req.body.limit); // Debug log
+        return res.status(400).send("Invalid limit value");
+    }
 
-  activeStreams.forEach((stream) => {
-    stream.emit('update-limit', newLimit);
-  });
+    console.log(`Updating sensor limit to: ${newLimit}`); // Debug log
 
-  res.status(200).send('Limit updated');
+    activeStreams.forEach((streamData, stream) => {
+        console.log(`Updating limit for stream: ${stream.req.ip}`);
+        streamData.currentLimit = newLimit; // Update limit in metadata
+        stream.write(`event: update-limit\ndata: ${JSON.stringify({ limit: newLimit })}\n\n`);
+    });
+
+    res.status(200).send("Limit updated");
 });
 
-const activeStreams = new Set();
+app.post('/pause-stream', (req, res) => {
+    const stream = Array.from(activeStreams.keys()).find((stream) => stream.req.ip === req.ip);
+    if (stream) {
+        const streamData = activeStreams.get(stream);
+        streamData.isPaused = true; // Update pause state in metadata
+        console.log(`Stream paused for client: ${req.ip}`);
+        res.status(200).send("Stream paused");
+    } else {
+        res.status(404).send("Stream not found");
+    }
+});
+
+app.post('/resume-stream', (req, res) => {
+    const stream = Array.from(activeStreams.keys()).find((stream) => stream.req.ip === req.ip);
+    if (stream) {
+        const streamData = activeStreams.get(stream);
+        streamData.isPaused = false; // Update pause state in metadata
+        console.log(`Stream resumed for client: ${req.ip}`);
+        res.status(200).send("Stream resumed");
+    } else {
+        res.status(404).send("Stream not found");
+    }
+});
 
 app.get('/stream-sliding-window', async (req, res) => {
-  try {
-    const db = await initializeDatabase();
+    try {
+        const db = await initializeDatabase();
 
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
 
-    activeStreams.add(res);
+        const startQuery = req.query.start;
+        const limit = parseInt(req.query.limit, 10) || 1;
+        const startTime = startQuery ? new Date(startQuery) : new Date('2023-04-28T17:01:02.00+02:00');
 
-    const startQuery = req.query.start;
-    const limit = parseInt(req.query.limit, 10) || 1;
-    const startTime = startQuery ? new Date(startQuery) : new Date('2023-04-28T17:01:02.00+02:00');
+        const streamData = {
+            isPaused: false,
+            currentLimit: limit,
+        };
 
-    startSlidingWindowStream(res, db, SLIDING_WINDOW_CONFIG, startTime, limit);
+        activeStreams.set(res, streamData);
 
-    res.on('close', () => {
-      console.log('Client disconnected. Cleaning up stream.');
-      activeStreams.delete(res);
-      res.end();
-    });
-  } catch (error) {
-    console.error(`Error initializing database: ${error.message}`);
-    res.status(500).send('Failed to initialize database');
-  }
+        startSlidingWindowStream(res, db, SLIDING_WINDOW_CONFIG, startTime, streamData);
+
+        res.on('close', () => {
+            activeStreams.delete(res);
+        });
+    } catch (error) {
+        console.error(`Error initializing database: ${error.message}`);
+        res.status(500).send("Failed to initialize database");
+    }
 });
+
 
 app.get("/api/sensors", async (req, res) => {
   try {
