@@ -37,6 +37,17 @@ export function clearSensorBuffers() {
     });
 }
 
+export function cleanupUnusedSensors(activeSensorIds) {
+    // Only remove sensors not in active list
+    Object.keys(sensorBuffers).forEach(sensorId => {
+        const numericId = parseInt(sensorId);
+        // Keep sensor if it's in active list and within current limit
+        if (!activeSensorIds.includes(numericId)) {
+            delete sensorBuffers[sensorId];
+        }
+    });
+}
+
 export function updateEventBuffer(events) {
     if (!events || !window.startTime) return;
     

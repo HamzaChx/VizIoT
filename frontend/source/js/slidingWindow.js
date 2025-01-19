@@ -1,5 +1,5 @@
 import GraphManager from "./graph/graph.js";
-import { updateEventBuffer, updateSensorBuffers } from "./graph/buffer.js";
+import { updateEventBuffer, updateSensorBuffers, getSensorBuffers, cleanupUnusedSensors } from "./graph/buffer.js";
 
 let graphManager = null;
 let eventSource = null;
@@ -55,25 +55,28 @@ const slider = document.getElementById("sensor-slider");
 const sensorCountLabel = document.getElementById("sensor-count");
 
 slider.addEventListener("input", (event) => {
-  const newLimit = event.target.value;
+  const newLimit = parseInt(event.target.value);
+  if (newLimit < 1) return; // Validate minimum value
+  
   sensorLimit = newLimit;
   sensorCountLabel.textContent = newLimit;
 
+  // Don't reset graph completely, just update limit
   fetch("/update-limit", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ limit: newLimit }),
+      method: "POST",
+      headers: {
+          "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ limit: newLimit }),
   })
-    .then((response) => {
+  .then((response) => {
       if (!response.ok) {
-        console.error("Failed to update sensor limit:", response.statusText);
+          console.error("Failed to update sensor limit:", response.statusText);
       }
-    })
-    .catch((error) => {
+  })
+  .catch((error) => {
       console.error("Error updating sensor limit:", error);
-    });
+  });
 });
 
 /**
@@ -85,6 +88,10 @@ function startSlidingWindowStream(canvasId) {
     console.log("Sliding window stream already active.");
     return;
   }
+
+  lastTimestamp = null;
+  startTime = null;
+  window.startTime = null;
 
   graphManager = new GraphManager(canvasId);
   graphManager.initialize();
@@ -107,12 +114,16 @@ function startSlidingWindowStream(canvasId) {
         window.startTime = startTime;
       }
 
+      const activeSensorIds = sensorData.map(d => d.sensor_id);
+      cleanupUnusedSensors(activeSensorIds);
+
       const transformedData = sensorData.map((entry) => {
         const groupRange = entry.group_max - entry.group_min;
         const scaledY = entry.group_min + entry.normalized_value * groupRange;
 
         return {
           sensorId: entry.sensor_id,
+          sensorName: entry.sensor_name,
           x: (Date.parse(entry.timestamp) - startTime) / 1000,
           y: scaledY,
           group: entry.group_name,
@@ -154,9 +165,9 @@ function stopSlidingWindowStream() {
   isPaused = false;
   lastTimestamp = null;
   startTime = null;
+  window.startTime = null;
 
   if (graphManager) {
-    graphManager.stopDrawing();
     graphManager.reset();
     graphManager = null;
   }

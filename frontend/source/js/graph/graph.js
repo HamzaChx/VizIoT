@@ -62,11 +62,12 @@ export default class GraphManager {
      * Resets the graph by clearing buffers and reinitializing.
      */
     reset() {
-        this.stopDrawing(); // Stop rendering
-        clearSensorBuffers(); // Clear data buffers
+        this.stopDrawing();
+        clearSensorBuffers();
         clearEventBuffer();
-        this.gr.clearws(); // Clear the graph workspace
-        updateLegend({}); // Clear the legend
+        this.gr.clearws();
+        updateLegend({});
+        this.startDrawing();
     }
 
     /**
