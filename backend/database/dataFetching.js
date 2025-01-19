@@ -1,6 +1,5 @@
 export async function fetchSlidingWindowData(db, start, end, limit = 1) {
   try {
-    
     const rawData = await db.all(
       `
       SELECT sd.sensor_id, sd.timestamp, sd.normalized_value, g.name AS group_name, s.name AS sensor_name
@@ -8,14 +7,13 @@ export async function fetchSlidingWindowData(db, start, end, limit = 1) {
       JOIN Sensors s ON sd.sensor_id = s.sensor_id
       JOIN Groups g ON s.group_id = g.group_id
       WHERE sd.sensor_id IN (
-          SELECT DISTINCT sensor_id
-          FROM SensorData
-          WHERE timestamp BETWEEN ? AND ?
-          LIMIT ?
+          SELECT DISTINCT pe.sensor_id
+          FROM ProcessEvents pe
+          WHERE pe.event_id BETWEEN 1 AND ?
       )
       AND sd.timestamp BETWEEN ? AND ?
       `,
-      [start, end, limit, start, end]
+      [limit, start, end]
     );
 
     if (!rawData.length) {
@@ -48,7 +46,6 @@ export async function fetchSlidingWindowData(db, start, end, limit = 1) {
       };
     });
 
-    // Map each group to its sensors
     const groupSensorMap = rawData.reduce((map, { group_name, sensor_name }) => {
       if (!map[group_name]) {
         map[group_name] = [];
