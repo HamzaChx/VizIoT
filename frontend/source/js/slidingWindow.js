@@ -1,5 +1,5 @@
 import GraphManager from "./graph/graph.js";
-import { updateBuffers } from "./graph/buffer.js";
+import { updateEventBuffer, updateSensorBuffers } from "./graph/buffer.js";
 
 let graphManager = null;
 let eventSource = null;
@@ -10,7 +10,6 @@ let lastTimestamp = null;
 document.getElementById("pause-button").addEventListener("click", () => {
   if (!eventSource || isPaused) return;
 
-  // Send a pause command to the server
   fetch("/pause-stream", { method: "POST" })
     .then((response) => {
       if (response.ok) {
@@ -97,7 +96,7 @@ function startSlidingWindowStream(canvasId) {
 
   eventSource.onmessage = (event) => {
     try {
-      const { sensorData, groupSensorMap } = JSON.parse(event.data);
+      const { events, sensorData, groupSensorMap } = JSON.parse(event.data);
 
       graphManager.groupSensorMap = groupSensorMap;
 
@@ -105,6 +104,7 @@ function startSlidingWindowStream(canvasId) {
 
       if (!startTime && sensorData.length > 0) {
         startTime = Date.parse(sensorData[0].timestamp);
+        window.startTime = startTime;
       }
 
       const transformedData = sensorData.map((entry) => {
@@ -119,9 +119,14 @@ function startSlidingWindowStream(canvasId) {
         };
       });
 
-      updateBuffers(transformedData);
+      updateSensorBuffers(transformedData);
+      
+      if (events && events.length > 0) {
+        updateEventBuffer(events);
+      }
 
       lastTimestamp = sensorData[sensorData.length - 1].timestamp;
+
     } catch (error) {
       console.error("Error processing sliding window data:", error);
     }

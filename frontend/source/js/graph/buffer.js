@@ -1,10 +1,11 @@
-const sensorBuffers = {};
+let sensorBuffers = {};
+let eventBuffer = [];
 
 /**
  * Updates the buffers with incoming graph data.
  * @param {Array} newGraphData - Array of new data points.
  */
-export function updateBuffers(newGraphData) {
+export function updateSensorBuffers(newGraphData) {
     const maxBufferSize = 200;
 
     newGraphData.forEach(({ sensorId, x, y, group }) => {
@@ -34,4 +35,22 @@ export function clearSensorBuffers() {
     Object.keys(sensorBuffers).forEach(sensorId => {
         delete sensorBuffers[sensorId];
     });
+}
+
+export function updateEventBuffer(events) {
+    if (!events || !window.startTime) return;
+    
+    eventBuffer = events.map(event => ({
+        x: (Date.parse(event.timestamp) - window.startTime) / 1000,
+        name: event.event_name,
+        ranking: event.ranking,
+        sensorId: event.sensor_id
+    }));
+}
+export function getEventBuffer() {
+    return eventBuffer;
+}
+
+export function clearEventBuffer() {
+    eventBuffer = [];
 }

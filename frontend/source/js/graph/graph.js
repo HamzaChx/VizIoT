@@ -1,4 +1,4 @@
-import { getSensorBuffers, clearSensorBuffers } from './buffer.js';
+import { getSensorBuffers, clearSensorBuffers, clearEventBuffer, getEventBuffer } from './buffer.js';
 import { updateLegend } from './legend.js';
 
 export default class GraphManager {
@@ -64,6 +64,7 @@ export default class GraphManager {
     reset() {
         this.stopDrawing(); // Stop rendering
         clearSensorBuffers(); // Clear data buffers
+        clearEventBuffer();
         this.gr.clearws(); // Clear the graph workspace
         updateLegend({}); // Clear the legend
     }
@@ -106,6 +107,9 @@ export default class GraphManager {
 
         // Plot data and update legend
         const groupColorMap = this.plotSensorData();
+
+        this.plotEventLines();
+
         updateLegend(groupColorMap, this.groupSensorMap);
 
         // Continue rendering
@@ -155,4 +159,36 @@ export default class GraphManager {
 
         return groupColorMap;
     }
+
+    plotEventLines() {
+
+        const events = getEventBuffer();
+        if (!events.length) return;
+
+        // Get current window bounds
+        const { xMin, xMax } = this.calculateXRange();
+        const yMin = 0, yMax = 1;
+    
+
+        events.forEach(event => {
+
+            if (event.x < xMin || event.x > xMax) return;
+
+            // Set line style based on ranking
+            this.gr.setlinecolorind(2); // Red color
+            this.gr.setlinetype(event.ranking >= 0.5 ? 1 : 3);  // Solid/dashed
+            this.gr.setlinewidth(2);
+
+            // Draw vertical line
+            const xCoords = [event.x, event.x];
+            const yCoords = [yMin, yMax];
+            this.gr.polyline(2, xCoords, yCoords);
+
+        });
+
+        this.gr.setlinewidth(1);
+        this.gr.setlinetype(1);
+
+    }
+
 }

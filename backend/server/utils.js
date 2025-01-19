@@ -19,14 +19,14 @@ export const startSlidingWindowStream = (res, db, config, startTime, streamData)
   let endTime = new Date(startTime.getTime() + config.slidingWindowDuration);
 
   const fetchData = async () => {
-      if (streamData.isPaused) return; // Skip fetching if paused
+      if (streamData.isPaused) return;
 
       try {
-          const { sensorData, groupSensorMap, stopStream } = await fetchSlidingWindowData(
+          const { events, sensorData, groupSensorMap, stopStream } = await fetchSlidingWindowData(
               db,
               formatDateWithOffset(startTime),
               formatDateWithOffset(endTime),
-              streamData.currentLimit // Use limit from metadata
+              streamData.currentLimit
           );
 
           if (stopStream) {
@@ -34,7 +34,7 @@ export const startSlidingWindowStream = (res, db, config, startTime, streamData)
               return;
           }
 
-          res.write(`data: ${JSON.stringify({ sensorData, groupSensorMap })}\n\n`);
+          res.write(`data: ${JSON.stringify({ events, sensorData, groupSensorMap })}\n\n`);
 
           startTime = new Date(startTime.getTime() + config.windowIncrement);
           endTime = new Date(endTime.getTime() + config.windowIncrement);

@@ -16,7 +16,6 @@ const SLIDING_WINDOW_CONFIG = {
   streamInterval: 1000 / 24, // Controls the interval at which updates are sent to the client
 };
 
-const clientState = new Map();
 const activeStreams = new Map();
 
 app.use(cors());
@@ -54,15 +53,11 @@ app.get("/load-log", async (req, res) => {
 app.post('/update-limit', (req, res) => {
     const newLimit = parseInt(req.body.limit, 10);
     if (isNaN(newLimit) || newLimit <= 0) {
-        console.error("Invalid limit value received:", req.body.limit); // Debug log
         return res.status(400).send("Invalid limit value");
     }
 
-    console.log(`Updating sensor limit to: ${newLimit}`); // Debug log
-
     activeStreams.forEach((streamData, stream) => {
-        console.log(`Updating limit for stream: ${stream.req.ip}`);
-        streamData.currentLimit = newLimit; // Update limit in metadata
+        streamData.currentLimit = newLimit;
         stream.write(`event: update-limit\ndata: ${JSON.stringify({ limit: newLimit })}\n\n`);
     });
 
@@ -73,8 +68,7 @@ app.post('/pause-stream', (req, res) => {
     const stream = Array.from(activeStreams.keys()).find((stream) => stream.req.ip === req.ip);
     if (stream) {
         const streamData = activeStreams.get(stream);
-        streamData.isPaused = true; // Update pause state in metadata
-        console.log(`Stream paused for client: ${req.ip}`);
+        streamData.isPaused = true;
         res.status(200).send("Stream paused");
     } else {
         res.status(404).send("Stream not found");
@@ -85,8 +79,7 @@ app.post('/resume-stream', (req, res) => {
     const stream = Array.from(activeStreams.keys()).find((stream) => stream.req.ip === req.ip);
     if (stream) {
         const streamData = activeStreams.get(stream);
-        streamData.isPaused = false; // Update pause state in metadata
-        console.log(`Stream resumed for client: ${req.ip}`);
+        streamData.isPaused = false;
         res.status(200).send("Stream resumed");
     } else {
         res.status(404).send("Stream not found");
@@ -103,7 +96,7 @@ app.get('/stream-sliding-window', async (req, res) => {
 
         const startQuery = req.query.start;
         const limit = parseInt(req.query.limit, 10) || 1;
-        const startTime = startQuery ? new Date(startQuery) : new Date('2023-04-28T17:01:02.00+02:00');
+        const startTime = startQuery ? new Date(startQuery) : new Date('2023-04-28T17:00:20.00+02:00');
 
         const streamData = {
             isPaused: false,
