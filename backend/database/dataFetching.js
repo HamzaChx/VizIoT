@@ -1,3 +1,32 @@
+export async function fetchEventTimestamps(db, rawData, start, end) {
+  try {
+    const sensorIds = [...new Set(rawData.map(entry => entry.sensor_id))];
+    
+    if (sensorIds.length === 0) return [];
+
+    const timestamps = await db.all(
+      `
+      SELECT 
+        et.timestamp,
+        pe.sensor_id,
+        pe.name as event_name,
+        pe.ranking
+      FROM EventTimestamps et
+      JOIN ProcessEvents pe ON et.event_id = pe.event_id
+      WHERE pe.sensor_id IN (${sensorIds.join(',')})
+      AND et.timestamp BETWEEN ? AND ?
+      ORDER BY et.timestamp ASC
+      `,
+      [start, end]
+    );
+
+    return timestamps;
+  } catch (error) {
+    console.error("Error fetching event timestamps:", error.message);
+    throw error;
+  }
+}
+
 export async function fetchSlidingWindowData(db, start, end, limit = 1) {
   try {
     const rawData = await db.all(
@@ -33,7 +62,7 @@ export async function fetchSlidingWindowData(db, start, end, limit = 1) {
       return intervals;
     }, {});
 
-    const enrichedData = rawData.map(({ sensor_id, sensor_name, timestamp, normalized_value, group_name }) => {
+    const sensorData = rawData.map(({ sensor_id, sensor_name, timestamp, normalized_value, group_name }) => {
       const { group_min, group_max } = groupIntervals[group_name];
       return {
         sensor_id,
@@ -56,9 +85,11 @@ export async function fetchSlidingWindowData(db, start, end, limit = 1) {
       return map;
     }, {});
 
-    console.log(`Fetched ${enrichedData.length} entries for ${groupNames.length} groups with margins.`);
+    const events = await fetchEventTimestamps(db, rawData, start, end);
 
-    return { sensorData: enrichedData, groupSensorMap };
+    console.log(`Fetched ${sensorData.length} entries for ${groupNames.length} groups with margins.`);
+
+    return { events, sensorData, groupSensorMap };
   } catch (error) {
     console.error("Error fetching sliding window data:", error.message);
     throw error;
