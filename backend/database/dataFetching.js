@@ -87,7 +87,7 @@ export async function fetchSlidingWindowData(db, start, end, limit = 1) {
 
     const events = await fetchEventTimestamps(db, rawData, start, end);
 
-    console.log(`Fetched ${sensorData.length} entries for ${groupNames.length} groups with margins.`);
+    console.log(`Fetched ${sensorData.length} entries for ${groupNames.length} groups.`);
 
     return { events, sensorData, groupSensorMap };
   } catch (error) {

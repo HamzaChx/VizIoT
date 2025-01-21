@@ -70,29 +70,25 @@ export async function storeSensorData(sensorData) {
 
       const { sensor_id, type } = sensor;
 
-      let lastKnownValue = null; // To track the last non-null value for the sensor
+      let lastKnownValue = null;
 
       for (const [timestamp, rawValue] of Object.entries(dataPoints)) {
         let processedValue = null;
 
         if (rawValue == null) {
-          // Fill missing value with the last known value if available
           processedValue = lastKnownValue;
         } else {
           if (type === "boolean") {
             processedValue = parseBinary(rawValue);
           } else if (type === "string") {
             const { encoded, normalized } = labelEncode(sensorName, rawValue);
-            processedValue = 0.5; // Example of a normalized string value
+            processedValue = normalized;
           } else {
             processedValue = rawValue;
           }
-
-          // Update the last known value
           lastKnownValue = processedValue;
         }
 
-        // Skip if both rawValue and lastKnownValue are null
         if (processedValue == null) continue;
 
         await insertOrUpdate(
@@ -109,145 +105,6 @@ export async function storeSensorData(sensorData) {
     }
   });
 }
-
-
-// function interpolateSensorData(
-//   type,
-//   lastKnownValue,
-//   lastKnownTimestamp,
-//   nextKnownValue,
-//   nextKnownTimestamp,
-//   currentTimestamp
-// ) {
-//   // For discrete sensors, return null (discrete data cannot be interpolated)
-//   if (type === "boolean" || type === "string") {
-//     return null;
-//   }
-
-//   // If last or next known value is missing, fallback to the last known value
-//   if (lastKnownValue == null || nextKnownValue == null) {
-//     return lastKnownValue ?? null; // Default to the last known value if available
-//   }
-
-//   // Perform linear interpolation for continuous data
-//   const fraction =
-//     (currentTimestamp - lastKnownTimestamp) /
-//     (nextKnownTimestamp - lastKnownTimestamp);
-//   return lastKnownValue + fraction * (nextKnownValue - lastKnownValue);
-// }
-
-// export async function storeSensorData(sensorData) {
-//   const db = await initializeDatabase();
-//   const binaryMapping = {
-//     "closed": 0,
-//     "opened": 1,
-//     "true": 1,
-//     "false": 0,
-//     "active": 1,
-//     "inactive": 0,
-//   };
-//   const parseBinary = (value) => binaryMapping[value?.toLowerCase()] ?? null;
-
-//   await executeTransaction(db, async () => {
-//     for (const [sensorName, dataPoints] of sensorData) {
-//       await insertOrUpdate(
-//         db,
-//         `INSERT OR IGNORE INTO Sensors (name, type, group_id) VALUES (?, 'unknown', NULL)`,
-//         [sensorName]
-//       );
-
-//       const sensor = await db.get(
-//         "SELECT sensor_id, type FROM Sensors WHERE name = ?",
-//         [sensorName]
-//       );
-
-//       if (!sensor) continue;
-
-//       const { sensor_id, type } = sensor;
-
-//       let lastKnownValue = null;
-//       let lastKnownTimestamp = null;
-
-//       // Sort timestamps for processing
-//       const sortedTimestamps = Object.keys(dataPoints)
-//         .map((ts) => new Date(ts))
-//         .sort((a, b) => a - b);
-
-//       for (let i = 0; i < sortedTimestamps.length; i++) {
-//         const currentTimestamp = sortedTimestamps[i];
-//         const formattedTimestamp = formatDateWithOffset(currentTimestamp);
-//         const rawValue = dataPoints[currentTimestamp.toISOString()];
-
-//         if (rawValue == null) {
-//           // Find the next known value for interpolation
-//           let nextKnownValue = null;
-//           let nextKnownTimestamp = null;
-
-//           for (let j = i + 1; j < sortedTimestamps.length; j++) {
-//             const futureTimestamp = sortedTimestamps[j];
-//             const futureValue = dataPoints[futureTimestamp.toISOString()];
-//             if (futureValue != null) {
-//               nextKnownValue = futureValue;
-//               nextKnownTimestamp = futureTimestamp;
-//               break;
-//             }
-//           }
-
-//           const interpolatedValue = interpolateSensorData(
-//             type,
-//             lastKnownValue,
-//             lastKnownTimestamp,
-//             nextKnownValue,
-//             nextKnownTimestamp,
-//             currentTimestamp
-//           );
-
-//           if (type === "boolean" || type === "string") {
-//             await insertOrUpdate(
-//               db,
-//               `INSERT OR REPLACE INTO SensorData (sensor_id, timestamp, value, original_value) VALUES (?, ?, ?, ?)`,
-//               [sensor_id, formattedTimestamp, null, null]
-//             );
-//           } else {
-//             await insertOrUpdate(
-//               db,
-//               `INSERT OR REPLACE INTO SensorData (sensor_id, timestamp, value, original_value) VALUES (?, ?, ?, ?)`,
-//               [sensor_id, formattedTimestamp, interpolatedValue, null]
-//             );
-//           }
-
-//           continue;
-//         }
-
-//         // Process non-null raw values
-//         let processedValue;
-//         if (type === "boolean") {
-//           processedValue = parseBinary(rawValue);
-//         } else if (type === "string") {
-//           const { encoded, normalized } = labelEncode(sensorName, rawValue);
-//           processedValue = normalized;
-//         } else {
-//           processedValue = rawValue;
-//         }
-
-//         lastKnownValue = processedValue;
-//         lastKnownTimestamp = currentTimestamp;
-
-//         await insertOrUpdate(
-//           db,
-//           `INSERT OR REPLACE INTO SensorData (sensor_id, timestamp, value, original_value) VALUES (?, ?, ?, ?)`,
-//           [
-//             sensor_id,
-//             formattedTimestamp, // Use properly formatted timestamp
-//             processedValue,
-//             typeof rawValue === "string" ? rawValue : null,
-//           ]
-//         );
-//       }
-//     }
-//   });
-// }
-
 
 export async function populateNormalizedValues() {
   const db = await initializeDatabase();
