@@ -56,16 +56,18 @@ export async function fetchSlidingWindowData(db, start, end, limit = 1) {
       return { sensorData: [], groupSensorMap: {}, stopStream: true };
     }
 
+    // Inside fetchSlidingWindowData function, replace the existing groupIntervals calculation with:
     const groupNames = [...new Set(rawData.map((entry) => entry.group_name))];
     const margin = 0.05;
-    const effectiveIntervalSize =
-      (1 - margin * (groupNames.length - 1)) / groupNames.length;
+    const effectiveIntervalSize = (1 - margin * (groupNames.length - 1)) / groupNames.length;
 
+    // Reverse order of group assignments to start from top
     const groupIntervals = groupNames.reduce((intervals, groupName, index) => {
-      const start = index * (effectiveIntervalSize + margin);
+      // Start from 1 and decrease for each group
+      const start = 1 - (index * (effectiveIntervalSize + margin));
       intervals[groupName] = {
-        group_min: start,
-        group_max: start + effectiveIntervalSize,
+        group_min: start - effectiveIntervalSize, // Lower bound
+        group_max: start // Upper bound
       };
       return intervals;
     }, {});

@@ -94,15 +94,14 @@ function getSensorsInRegion(timestamp, group, graphManager) {
         .filter(sensor => sensor !== null);
 }
 
-
 function showModal(sensors) {
     const modal = document.getElementById("sensor-modal");
     const dataList = document.getElementById("sensor-data-list");
 
     dataList.innerHTML = `
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content border-0 shadow">
-            <div class="modal-header">
+            <div class="modal-header sticky-top bg-white">
                 <h5 class="modal-title">
                     ${sensors.length} Sensor${sensors.length > 1 ? 's' : ''} Selected
                 </h5>

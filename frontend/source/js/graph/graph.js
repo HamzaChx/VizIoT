@@ -62,14 +62,10 @@ export default class GraphManager {
     GR.ready(() => {
       this.gr = new GR(this.canvasId);
       this.gr.clearws();
-      this.gr.setviewport(0.1, 0.95, 0.1, 0.95);
+      this.gr.setviewport(0.05, 0.95, 0.05, 0.95);
 
       const canvasElement = document.getElementById(this.canvasId);
       if (canvasElement) {
-        // canvasElement.addEventListener("wheel", (event) => {
-        //   this.handleRewind(event);
-        // });
-
         canvasElement.addEventListener("click", (event) =>
           handleCanvasClick(event, canvasElement, this)
         );
