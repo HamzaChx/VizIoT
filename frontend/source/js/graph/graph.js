@@ -224,22 +224,23 @@ export default class GraphManager {
     if (!events.length) return;
 
     const { xMin, xMax } = this.calculateXRange();
-    const yMin = 0,
-      yMax = 1;
+    const verticalMargin = 0.025; // Match margin from dataFetching.js
+    const yMin = verticalMargin;
+    const yMax = 1 - verticalMargin;
 
     events.forEach((event) => {
-      if (event.x < xMin || event.x > xMax) return;
+        if (event.x < xMin || event.x > xMax) return;
 
-      this.gr.setlinecolorind(1);
-      this.gr.setlinetype(event.ranking >= 0.5 ? 1 : 3); // Solid/dashed
-      this.gr.setlinewidth(2);
+        this.gr.setlinecolorind(1);
+        this.gr.setlinetype(event.ranking >= 0.5 ? 1 : 3); // Solid/dashed
+        this.gr.setlinewidth(2);
 
-      const xCoords = [event.x, event.x];
-      const yCoords = [yMin, yMax];
-      this.gr.polyline(2, xCoords, yCoords);
+        const xCoords = [event.x, event.x];
+        const yCoords = [yMin, yMax];
+        this.gr.polyline(2, xCoords, yCoords);
     });
 
     this.gr.setlinewidth(1);
     this.gr.setlinetype(1);
-  }
+}
 }

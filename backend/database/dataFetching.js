@@ -58,16 +58,21 @@ export async function fetchSlidingWindowData(db, start, end, limit = 1) {
 
     // Inside fetchSlidingWindowData function, replace the existing groupIntervals calculation with:
     const groupNames = [...new Set(rawData.map((entry) => entry.group_name))];
-    const margin = 0.05;
-    const effectiveIntervalSize = (1 - margin * (groupNames.length - 1)) / groupNames.length;
+    const verticalMargin = 0.025; // 10% margin top and bottom
+    const groupMargin = 0.05;
+    const availableHeight = 1 - 2 * verticalMargin; // Available space after margins
+    const effectiveIntervalSize =
+      (availableHeight - groupMargin * (groupNames.length - 1)) /
+      groupNames.length;
 
-    // Reverse order of group assignments to start from top
+    // Calculate group intervals with margins
     const groupIntervals = groupNames.reduce((intervals, groupName, index) => {
-      // Start from 1 and decrease for each group
-      const start = 1 - (index * (effectiveIntervalSize + margin));
+      // Start from (1 - topMargin) and decrease for each group
+      const start =
+        1 - verticalMargin - index * (effectiveIntervalSize + groupMargin);
       intervals[groupName] = {
-        group_min: start - effectiveIntervalSize, // Lower bound
-        group_max: start // Upper bound
+        group_min: start - effectiveIntervalSize,
+        group_max: start,
       };
       return intervals;
     }, {});
