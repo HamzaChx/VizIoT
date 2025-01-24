@@ -15,6 +15,9 @@ export default class GraphManager {
     this.isPaused = false;
     this.groupSensorMap = {};
     this.getSensorBuffers = getSensorBuffers;
+    // this.rewindOffset = 0;
+    // this.maxRewindOffset = 30;
+    // this.activeHighlight = null;
   }
 
   /**
@@ -23,21 +26,58 @@ export default class GraphManager {
    */
   initialize(autoStart = false) {
     GR.ready(() => {
-        this.gr = new GR(this.canvasId);
+      this.gr = new GR(this.canvasId);
 
-        // Configure the viewport
-        this.gr.clearws();
-        this.gr.setviewport(0.1, 0.95, 0.1, 0.95);
+      // Configure the viewport
+      this.gr.clearws();
+      this.gr.setviewport(0.1, 0.95, 0.1, 0.95);
 
-        // Add the click event listener
-        const canvasElement = document.getElementById(this.canvasId);
-        canvasElement.addEventListener("click", (event) =>
-            handleCanvasClick(event, canvasElement, this)
-        );
+      // Add the click event listener
+      const canvasElement = document.getElementById(this.canvasId);
+      canvasElement.addEventListener("click", (event) =>
+        handleCanvasClick(event, canvasElement, this)
+      );
 
-        if (autoStart) this.startDrawing();
+      if (autoStart) this.startDrawing();
     });
-}
+  }
+
+  // handleRewind(event) {
+  //   if (!this.isPaused) return;
+
+  //   event.preventDefault();
+
+  //   // Calculate rewind adjustment (in seconds)
+  //   const delta = event.deltaY > 0 ? 1 : -1;
+  //   this.rewindOffset = Math.max(
+  //     0,
+  //     Math.min(this.maxRewindOffset, this.rewindOffset + delta)
+  //   );
+
+  //   // Trigger redraw
+  //   this.drawFrame();
+  // }
+
+  initialize(autoStart = false) {
+    GR.ready(() => {
+      this.gr = new GR(this.canvasId);
+      this.gr.clearws();
+      this.gr.setviewport(0.1, 0.95, 0.1, 0.95);
+
+      const canvasElement = document.getElementById(this.canvasId);
+      if (canvasElement) {
+        // canvasElement.addEventListener("wheel", (event) => {
+        //   this.handleRewind(event);
+        // });
+
+        canvasElement.addEventListener("click", (event) =>
+          handleCanvasClick(event, canvasElement, this)
+        );
+      }
+
+      if (autoStart) this.startDrawing();
+    });
+  }
 
   /**
    * Starts the graph rendering process.
@@ -49,7 +89,7 @@ export default class GraphManager {
     }
 
     this.isDrawing = true;
-    this.isPaused = false; // Ensure it’s not paused when starting
+    this.isPaused = false;
     this.drawFrame();
   }
 
@@ -59,7 +99,7 @@ export default class GraphManager {
   pauseDrawing() {
     if (this.isDrawing) {
       this.isPaused = true;
-      console.log("Graph rendering paused.");
+      // this.rewindOffset = 0;
     }
   }
 
@@ -89,9 +129,8 @@ export default class GraphManager {
    * Draws a single frame of the graph, including axes, grid, and sensor data.
    */
   drawFrame() {
-    if (!this.isDrawing || this.isPaused) return;
+    if (!this.isDrawing) return;
 
-    // Calculate X-axis range
     const { xMin, xMax } = this.calculateXRange();
     const yMin = 0,
       yMax = 1;
@@ -101,15 +140,17 @@ export default class GraphManager {
       return;
     }
 
-    // Configure the graph window
     this.gr.clearws();
     this.gr.setwindow(xMin, xMax, yMin, yMax);
 
-    // Draw grid and axes
+    // if (this.rewindOffset > 0) {
+    //   this.gr.setlinecolorind(2); // Red
+    //   this.gr.text(0.1, 0.95, `${this.rewindOffset}s`);
+    // }
+
     this.gr.setlinecolorind(1);
     this.gr.grid(0.25, 0.25, 0, 0, 2, 2);
 
-    // Custom axis labels for the x-axis
     const xTickInterval = Math.ceil((xMax - xMin) / 10) || 1;
     this.gr.axes(
       xTickInterval,
@@ -122,16 +163,21 @@ export default class GraphManager {
       (tickValue) => Math.round(tickValue)
     );
 
-    // Plot data and update legend
     const groupColorMap = this.plotSensorData();
 
     this.plotEventLines();
 
     updateLegend(groupColorMap, this.groupSensorMap);
 
-    // Continue rendering
-    requestAnimationFrame(() => this.drawFrame());
+    if (!this.isPaused) {
+      requestAnimationFrame(() => this.drawFrame());
+    }
   }
+
+  // resetRewind() {
+  //   this.rewindOffset = 0;
+  //   this.drawFrame();
+  // }
 
   /**
    * Calculates the global X-axis range across all sensor buffers.

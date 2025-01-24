@@ -98,7 +98,7 @@ export async function storeSensorData(sensorData) {
             sensor_id,
             timestamp,
             processedValue,
-            typeof rawValue === "string" ? rawValue : null,
+            rawValue,
           ]
         );
       }
