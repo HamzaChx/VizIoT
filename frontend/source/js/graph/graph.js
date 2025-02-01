@@ -15,9 +15,6 @@ export default class GraphManager {
     this.isPaused = false;
     this.groupSensorMap = {};
     this.getSensorBuffers = getSensorBuffers;
-    // this.rewindOffset = 0;
-    // this.maxRewindOffset = 30;
-    // this.activeHighlight = null;
   }
 
   /**
@@ -28,11 +25,9 @@ export default class GraphManager {
     GR.ready(() => {
       this.gr = new GR(this.canvasId);
 
-      // Configure the viewport
       this.gr.clearws();
       this.gr.setviewport(0.1, 0.95, 0.1, 0.95);
 
-      // Add the click event listener
       const canvasElement = document.getElementById(this.canvasId);
       canvasElement.addEventListener("click", (event) =>
         handleCanvasClick(event, canvasElement, this)
@@ -41,22 +36,6 @@ export default class GraphManager {
       if (autoStart) this.startDrawing();
     });
   }
-
-  // handleRewind(event) {
-  //   if (!this.isPaused) return;
-
-  //   event.preventDefault();
-
-  //   // Calculate rewind adjustment (in seconds)
-  //   const delta = event.deltaY > 0 ? 1 : -1;
-  //   this.rewindOffset = Math.max(
-  //     0,
-  //     Math.min(this.maxRewindOffset, this.rewindOffset + delta)
-  //   );
-
-  //   // Trigger redraw
-  //   this.drawFrame();
-  // }
 
   initialize(autoStart = false) {
     GR.ready(() => {
@@ -139,11 +118,6 @@ export default class GraphManager {
     this.gr.clearws();
     this.gr.setwindow(xMin, xMax, yMin, yMax);
 
-    // if (this.rewindOffset > 0) {
-    //   this.gr.setlinecolorind(2); // Red
-    //   this.gr.text(0.1, 0.95, `${this.rewindOffset}s`);
-    // }
-
     this.gr.setlinecolorind(1);
     this.gr.grid(0.25, 0.25, 0, 0, 2, 2);
 
@@ -169,11 +143,6 @@ export default class GraphManager {
       requestAnimationFrame(() => this.drawFrame());
     }
   }
-
-  // resetRewind() {
-  //   this.rewindOffset = 0;
-  //   this.drawFrame();
-  // }
 
   /**
    * Calculates the global X-axis range across all sensor buffers.
@@ -210,7 +179,6 @@ export default class GraphManager {
           if (nextColorIndex < 1) nextColorIndex = 8;
         }
 
-        // Plot the data
         this.gr.setlinecolorind(groupColorMap[group]);
         this.gr.polyline(x.length, x, y);
       }
@@ -224,23 +192,20 @@ export default class GraphManager {
     if (!events.length) return;
 
     const { xMin, xMax } = this.calculateXRange();
-    const verticalMargin = 0.025; // Match margin from dataFetching.js
-    const yMin = verticalMargin;
-    const yMax = 1 - verticalMargin;
 
     events.forEach((event) => {
-        if (event.x < xMin || event.x > xMax) return;
+      if (event.x < xMin || event.x > xMax) return;
 
-        this.gr.setlinecolorind(1);
-        this.gr.setlinetype(event.ranking >= 0.5 ? 1 : 3); // Solid/dashed
-        this.gr.setlinewidth(2);
+      this.gr.setlinecolorind(1);
+      this.gr.setlinetype(3);
+      this.gr.setlinewidth(2);
 
-        const xCoords = [event.x, event.x];
-        const yCoords = [yMin, yMax];
-        this.gr.polyline(2, xCoords, yCoords);
+      const xCoords = [event.x, event.x];
+      const yCoords = [0, 1];
+      this.gr.polyline(2, xCoords, yCoords);
     });
 
     this.gr.setlinewidth(1);
     this.gr.setlinetype(1);
-}
+  }
 }

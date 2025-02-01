@@ -56,18 +56,15 @@ export async function fetchSlidingWindowData(db, start, end, limit = 1) {
       return { sensorData: [], groupSensorMap: {}, stopStream: true };
     }
 
-    // Inside fetchSlidingWindowData function, replace the existing groupIntervals calculation with:
     const groupNames = [...new Set(rawData.map((entry) => entry.group_name))];
-    const verticalMargin = 0.025; // 10% margin top and bottom
+    const verticalMargin = 0.025;
     const groupMargin = 0.05;
-    const availableHeight = 1 - 2 * verticalMargin; // Available space after margins
+    const availableHeight = 1 - 2 * verticalMargin;
     const effectiveIntervalSize =
       (availableHeight - groupMargin * (groupNames.length - 1)) /
       groupNames.length;
 
-    // Calculate group intervals with margins
     const groupIntervals = groupNames.reduce((intervals, groupName, index) => {
-      // Start from (1 - topMargin) and decrease for each group
       const start =
         1 - verticalMargin - index * (effectiveIntervalSize + groupMargin);
       intervals[groupName] = {

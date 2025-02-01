@@ -6,7 +6,7 @@ let eventBuffer = [];
  * @param {Array} newGraphData - Array of new data points.
  */
 export function updateSensorBuffers(newGraphData) {
-    const maxBufferSize = 200;
+    const maxBufferSize = 225;
 
     newGraphData.forEach(({ sensorId, sensorName, originalValue, x, y, group }) => {
         const buffer = sensorBuffers[sensorId] || (sensorBuffers[sensorId] = { 

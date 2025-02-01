@@ -110,10 +110,25 @@ export async function populateNormalizedValues() {
   const db = await initializeDatabase();
 
   try {
-    
-    const sensors = await db.all(`SELECT DISTINCT sensor_id FROM SensorData`);
+    const sensors = await db.all(`
+      SELECT DISTINCT sd.sensor_id, s.type 
+      FROM SensorData sd
+      JOIN Sensors s ON sd.sensor_id = s.sensor_id
+    `);
 
-    for (const { sensor_id } of sensors) {
+    for (const { sensor_id, type } of sensors) {
+      if (type === 'boolean') {
+        await db.run(
+          `UPDATE SensorData
+           SET normalized_value = CASE 
+             WHEN value = 0 THEN 0 
+             ELSE 1 
+           END
+           WHERE sensor_id = ?`,
+          [sensor_id]
+        );
+        continue;
+      }
 
       const minMax = await db.get(
         `SELECT MIN(value) AS min_value, MAX(value) AS max_value
@@ -132,7 +147,6 @@ export async function populateNormalizedValues() {
          WHERE sensor_id = ?`,
         [min, range, sensor_id]
       );
-
     }
   } catch (error) {
     console.error("Error populating normalized values:", error.message);

@@ -6,21 +6,29 @@
  */
 export function handleCanvasClick(event, canvas, graphManager) {
     const rect = canvas.getBoundingClientRect();
+    
+    // Get click coordinates relative to canvas (0-1 range)
+    const canvasX = (event.clientX - rect.left) / rect.width;
+    const canvasY = (event.clientY - rect.top) / rect.height;
 
-    // Translate click coordinates to canvas-relative coordinates
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
+    // Check if click is within viewport bounds (0.1-0.95 range)
+    if (canvasX < 0.1 || canvasX > 0.95 || canvasY < 0.1 || canvasY > 0.95) {
+        return; // Click outside graph area
+    }
 
-    // Translate canvas coordinates to graph-specific values
-    const timestamp = translateXToTimestamp(x, graphManager);
-    const group = translateYToGroup(y, graphManager);
+    // Convert canvas coordinates to graph coordinates
+    const graphX = (canvasX - 0.1) / (0.95 - 0.1);
+    const graphY = (canvasY - 0.1) / (0.95 - 0.1);
 
-    // Fetch relevant sensors
-    const sensors = getSensorsInRegion(timestamp, group, graphManager);
+    // Convert to timestamp and group
+    const timestamp = translateXToTimestamp(graphX * canvas.width, graphManager);
+    const group = translateYToGroup(graphY * canvas.height, graphManager);
 
-    // Show modal if sensors are found
-    if (sensors.length > 0) {
-        showModal(sensors);
+    if (group) {
+        const sensors = getSensorsInRegion(timestamp, group, graphManager);
+        if (sensors.length > 0) {
+            showModal(sensors);
+        }
     }
 }
 
