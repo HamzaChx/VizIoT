@@ -24,24 +24,21 @@ export default class GraphManager {
   initialize(autoStart = false) {
     GR.ready(() => {
       this.gr = new GR(this.canvasId);
-
       this.gr.clearws();
-      this.gr.setviewport(0.1, 0.95, 0.1, 0.95);
 
-      const canvasElement = document.getElementById(this.canvasId);
-      canvasElement.addEventListener("click", (event) =>
-        handleCanvasClick(event, canvasElement, this)
+      const viewportStart = 0.05;
+      const viewportEnd = 0.95;
+      this.gr.setviewport(
+        viewportStart,
+        viewportEnd,
+        viewportStart,
+        viewportEnd
       );
 
-      if (autoStart) this.startDrawing();
-    });
-  }
-
-  initialize(autoStart = false) {
-    GR.ready(() => {
-      this.gr = new GR(this.canvasId);
-      this.gr.clearws();
-      this.gr.setviewport(0.05, 0.95, 0.05, 0.95);
+      this.viewportSettings = {
+        start: viewportStart,
+        end: viewportEnd,
+      };
 
       const canvasElement = document.getElementById(this.canvasId);
       if (canvasElement) {
@@ -161,6 +158,24 @@ export default class GraphManager {
     });
 
     return { xMin, xMax };
+  }
+
+  getBoundingClientRect() {
+    const canvas = document.getElementById(this.canvasId);
+    if (!canvas) return null;
+
+    const canvasRect = canvas.getBoundingClientRect();
+    const viewportStart = this.viewportSettings.start;
+    const viewportEnd = this.viewportSettings.end;
+
+    return {
+        left: canvasRect.left + (canvasRect.width * viewportStart),
+        top: canvasRect.top + (canvasRect.height * viewportStart),
+        width: canvasRect.width * (viewportEnd - viewportStart),
+        height: canvasRect.height * (viewportEnd - viewportStart),
+        right: canvasRect.left + (canvasRect.width * viewportEnd),
+        bottom: canvasRect.top + (canvasRect.height * viewportEnd)
+    };
   }
 
   /**

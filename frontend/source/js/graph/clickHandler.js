@@ -5,31 +5,42 @@
  * @param {Object} graphManager - An instance of GraphManager.
  */
 export function handleCanvasClick(event, canvas, graphManager) {
-    const rect = canvas.getBoundingClientRect();
-    
-    // Get click coordinates relative to canvas (0-1 range)
-    const canvasX = (event.clientX - rect.left) / rect.width;
-    const canvasY = (event.clientY - rect.top) / rect.height;
+  const viewportStart = graphManager.viewportSettings.start;
+  const viewportEnd = graphManager.viewportSettings.end;
+  const rect = canvas.getBoundingClientRect();
 
-    // Check if click is within viewport bounds (0.1-0.95 range)
-    if (canvasX < 0.1 || canvasX > 0.95 || canvasY < 0.1 || canvasY > 0.95) {
-        return; // Click outside graph area
+  // Get raw click coordinates
+  const rawX = event.clientX - rect.left;
+  const rawY = event.clientY - rect.top;
+
+  // Check if click is within viewport
+  const viewportWidth = rect.width * (viewportEnd - viewportStart);
+  const viewportHeight = rect.height * (viewportEnd - viewportStart);
+  const viewportLeft = rect.width * viewportStart;
+  const viewportTop = rect.height * viewportStart;
+
+  if (
+    rawX < viewportLeft ||
+    rawX > viewportLeft + viewportWidth ||
+    rawY < viewportTop ||
+    rawY > viewportTop + viewportHeight
+  ) {
+    return;
+  }
+
+  // Normalize coordinates to graph space (0-1)
+  const graphX = (rawX - viewportLeft) / viewportWidth;
+  const graphY = 1 - (rawY - viewportTop) / viewportHeight;
+
+  const timestamp = translateXToTimestamp(graphX, graphManager);
+  const group = translateYToGroup(graphY, graphManager.groupSensorMap);
+
+  if (group) {
+    const sensors = getSensorsInRegion(timestamp, group, graphManager, graphY);
+    if (sensors.length > 0) {
+      showModal(sensors);
     }
-
-    // Convert canvas coordinates to graph coordinates
-    const graphX = (canvasX - 0.1) / (0.95 - 0.1);
-    const graphY = (canvasY - 0.1) / (0.95 - 0.1);
-
-    // Convert to timestamp and group
-    const timestamp = translateXToTimestamp(graphX * canvas.width, graphManager);
-    const group = translateYToGroup(graphY * canvas.height, graphManager);
-
-    if (group) {
-        const sensors = getSensorsInRegion(timestamp, group, graphManager);
-        if (sensors.length > 0) {
-            showModal(sensors);
-        }
-    }
+  }
 }
 
 /**
@@ -39,9 +50,9 @@ export function handleCanvasClick(event, canvas, graphManager) {
  * @returns {number} - Timestamp corresponding to X coordinate.
  */
 function translateXToTimestamp(x, graphManager) {
-    const { xMin, xMax } = graphManager.calculateXRange();
-    const canvasWidth = document.getElementById(graphManager.canvasId).width;
-    return xMin + (x / canvasWidth) * (xMax - xMin);
+  const { xMin, xMax } = graphManager.calculateXRange();
+  const canvasWidth = document.getElementById(graphManager.canvasId).width;
+  return xMin + (x / canvasWidth) * (xMax - xMin);
 }
 
 /**
@@ -50,74 +61,136 @@ function translateXToTimestamp(x, graphManager) {
  * @param {Object} graphManager - An instance of GraphManager.
  * @returns {string|null} - Group name corresponding to Y coordinate.
  */
-function translateYToGroup(y, graphManager) {
-    const groupNames = Object.keys(graphManager.groupSensorMap);
-    const groupCount = groupNames.length;
-    const canvasHeight = document.getElementById(graphManager.canvasId).height;
+function translateYToGroup(graphY, groupSensorMap) {
+  const groupNames = Object.keys(groupSensorMap);
+  const verticalMargin = 0.025;
+  const groupMargin = 0.05;
+  const availableHeight = 1 - 2 * verticalMargin;
+  const effectiveIntervalSize =
+    (availableHeight - groupMargin * (groupNames.length - 1)) /
+    groupNames.length;
 
-    // Dynamically calculate group height based on canvas height and number of groups
-    const groupHeight = canvasHeight / groupCount;
+  for (let i = 0; i < groupNames.length; i++) {
+    const groupName = groupNames[i];
+    const start =
+      1 - verticalMargin - i * (effectiveIntervalSize + groupMargin);
+    const min = start - effectiveIntervalSize;
+    const max = start;
 
-    // Determine the clicked group index
-    const groupIndex = Math.floor(y / groupHeight);
-
-    // Return the group name if valid, else return null
-    return groupNames[groupIndex] || null;
+    if (graphY >= min && graphY <= max) {
+      return groupName;
+    }
+  }
+  return null;
 }
-
 
 /**
  * Retrieves sensors in the clicked region based on timestamp and group.
  * @param {number} timestamp - The clicked timestamp.
  * @param {string|null} group - The clicked group name.
  * @param {Object} graphManager - An instance of GraphManager.
+ * @param {number} graphY - The Y coordinate of the click in graph space (0-1).
  * @returns {Array<Object>} - Array of sensors in the region.
  */
-function getSensorsInRegion(timestamp, group, graphManager) {
+function getSensorsInRegion(timestamp, group, graphManager, graphY) {
     const buffers = graphManager.getSensorBuffers();
-    const tolerance = 0.1;
-
+    const xTolerance = 0.25;
+    const yTolerance = 0.025;
+    
     return Object.entries(buffers)
         .filter(([_, data]) => {
-            return (
-                data.group === group &&
-                data.x.some((val) => Math.abs(val - timestamp) <= tolerance)
-            );
+            if (data.group !== group) return false;
+            
+            const timeIndices = data.x
+                .map((val, idx) => ({ val, idx }))
+                .filter(({val}) => Math.abs(val - timestamp) <= xTolerance)
+                .sort((a, b) => Math.abs(a.val - timestamp) - Math.abs(b.val - timestamp))
+                .slice(0, 2);
+            
+            if (timeIndices.length === 0) return false;
+            
+            let interpolatedY;
+            const value = data.values[timeIndices[0].idx];
+            const isBinary = value === '0' || value === '1';
+            
+            if (!isBinary && timeIndices.length === 2) {
+                const t1 = timeIndices[0].val;
+                const t2 = timeIndices[1].val;
+                const y1 = data.y[timeIndices[0].idx];
+                const y2 = data.y[timeIndices[1].idx];
+                
+                const ratio = (timestamp - t1) / (t2 - t1);
+                interpolatedY = y1 + (y2 - y1) * ratio;
+            } else {
+                interpolatedY = data.y[timeIndices[0].idx];
+            }
+            
+            return Math.abs(interpolatedY - graphY) <= yTolerance;
         })
         .map(([sensorId, data]) => {
-            const closestIndex = data.x.findIndex(
-                (val) => Math.abs(val - timestamp) <= tolerance
-            );
-
-            if (closestIndex === -1) return null;
-
+            const timeIndices = data.x
+                .map((val, idx) => ({ val, idx }))
+                .filter(({val}) => Math.abs(val - timestamp) <= xTolerance)
+                .sort((a, b) => Math.abs(a.val - timestamp) - Math.abs(b.val - timestamp))
+                .slice(0, 2);
+            
+            let value;
+            const originalValue = data.values[timeIndices[0].idx];
+            const isBinary = originalValue === '0' || originalValue === '1';
+            
+            if (!isBinary && timeIndices.length === 2) {
+                const t1 = timeIndices[0].val;
+                const t2 = timeIndices[1].val;
+                const v1 = data.values[timeIndices[0].idx];
+                const v2 = data.values[timeIndices[1].idx];
+                
+                // Only interpolate if not binary/string
+                if (!isNaN(parseFloat(v1)) && !isNaN(parseFloat(v2))) {
+                    const ratio = (timestamp - t1) / (t2 - t1);
+                    value = parseFloat(v1) + (parseFloat(v2) - parseFloat(v1)) * ratio;
+                    value = value.toFixed(3);
+                } else {
+                    value = v1; // Use nearest value for non-numeric types
+                }
+            } else {
+                value = originalValue;
+            }
+            
+            // Convert binary values to human-readable format
+            if (isBinary) {
+                value = value === '1' ? 'Active' : 'Inactive';
+            }
+            
             return {
                 sensorId,
                 sensorName: data.sensorName || "Unknown",
-                value: data.values[closestIndex] || data.y[closestIndex].toFixed(3),
+                value,
                 timestamp: new Date(timestamp * 1000 + window.startTime).toLocaleString(),
                 group: data.group
             };
-        })
-        .filter(sensor => sensor !== null);
+        });
 }
 
 function showModal(sensors) {
-    const modal = document.getElementById("sensor-modal");
-    const dataList = document.getElementById("sensor-data-list");
+  const modal = document.getElementById("sensor-modal");
+  const dataList = document.getElementById("sensor-data-list");
 
-    dataList.innerHTML = `
+  dataList.innerHTML = `
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content border-0 shadow">
             <div class="modal-header sticky-top bg-white">
                 <h5 class="modal-title">
-                    ${sensors.length} Sensor${sensors.length > 1 ? 's' : ''} Selected
+                    ${sensors.length} Sensor${
+    sensors.length > 1 ? "s" : ""
+  } Selected
                 </h5>
                 <button type="button" class="btn-close sensor-modal-close"></button>
             </div>
             <div class="modal-body">
                 <div class="list-group list-group-flush">
-                    ${sensors.map(sensor => `
+                    ${sensors
+                      .map(
+                        (sensor) => `
                         <div class="list-group-item">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <h6 class="mb-0">${sensor.sensorName}</h6>
@@ -134,20 +207,56 @@ function showModal(sensors) {
                                 </div>
                             </div>
                         </div>
-                    `).join('')}
+                    `
+                      )
+                      .join("")}
                 </div>
             </div>
         </div>
     </div>`;
 
-    modal.style.display = "block";
+  modal.style.display = "block";
 
-    // Add close handlers
-    document.querySelectorAll(".sensor-modal-close").forEach(btn => 
-        btn.onclick = () => modal.style.display = "none"
-    );
-    
-    modal.onclick = (e) => {
-        if (e.target === modal) modal.style.display = "none";
-    };
+  const dialog = modal.querySelector(".modal-dialog");
+  const header = dialog.querySelector(".modal-header");
+  let isDragging = false;
+  let currentX;
+  let currentY;
+  let initialX;
+  let initialY;
+  let xOffset = 0;
+  let yOffset = 0;
+
+  header.addEventListener("mousedown", (e) => {
+    initialX = e.clientX - xOffset;
+    initialY = e.clientY - yOffset;
+    if (e.target === header || e.target.closest(".modal-header")) {
+      isDragging = true;
+    }
+  });
+
+  document.addEventListener("mousemove", (e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+
+    currentX = e.clientX - initialX;
+    currentY = e.clientY - initialY;
+
+    xOffset = currentX;
+    yOffset = currentY;
+
+    dialog.style.transform = `translate(${currentX}px, ${currentY}px)`;
+  });
+
+  document.addEventListener("mouseup", () => {
+    isDragging = false;
+  });
+
+  document
+    .querySelectorAll(".sensor-modal-close")
+    .forEach((btn) => (btn.onclick = () => (modal.style.display = "none")));
+
+  modal.onclick = (e) => {
+    if (e.target === modal) modal.style.display = "none";
+  };
 }
