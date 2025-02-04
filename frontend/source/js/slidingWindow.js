@@ -1,11 +1,39 @@
 import GraphManager from "./graph/graph.js";
-import { updateEventBuffer, updateSensorBuffers, getSensorBuffers, cleanupUnusedSensors } from "./graph/buffer.js";
+import { updateEventBuffer, updateSensorBuffers, cleanupUnusedSensors } from "./graph/buffer.js";
 
 let graphManager = null;
 let eventSource = null;
 let startTime = null;
 let isPaused = false;
 let lastTimestamp = null;
+
+let sensorLimit = 1;
+const slider = document.getElementById("sensor-slider");
+const sensorCountLabel = document.getElementById("sensor-count");
+
+slider.addEventListener("input", (event) => {
+  const newLimit = parseInt(event.target.value);
+  if (newLimit < 1) return;
+  
+  sensorLimit = newLimit;
+  sensorCountLabel.textContent = newLimit;
+
+  fetch("/update-limit", {
+      method: "POST",
+      headers: {
+          "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ limit: newLimit }),
+  })
+  .then((response) => {
+      if (!response.ok) {
+          console.error("Failed to update sensor limit:", response.statusText);
+      }
+  })
+  .catch((error) => {
+      console.error("Error updating sensor limit:", error);
+  });
+});
 
 document.getElementById("pause-button").addEventListener("click", () => {
   if (!eventSource || isPaused) return;
@@ -48,35 +76,6 @@ document.getElementById("play-button").addEventListener("click", () => {
 
 document.getElementById("stop-button").addEventListener("click", () => {
   stopSlidingWindowStream();
-});
-
-let sensorLimit = 1;
-const slider = document.getElementById("sensor-slider");
-const sensorCountLabel = document.getElementById("sensor-count");
-
-slider.addEventListener("input", (event) => {
-  const newLimit = parseInt(event.target.value);
-  if (newLimit < 1) return; // Validate minimum value
-  
-  sensorLimit = newLimit;
-  sensorCountLabel.textContent = newLimit;
-
-  // Don't reset graph completely, just update limit
-  fetch("/update-limit", {
-      method: "POST",
-      headers: {
-          "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ limit: newLimit }),
-  })
-  .then((response) => {
-      if (!response.ok) {
-          console.error("Failed to update sensor limit:", response.statusText);
-      }
-  })
-  .catch((error) => {
-      console.error("Error updating sensor limit:", error);
-  });
 });
 
 /**
@@ -124,6 +123,7 @@ function startSlidingWindowStream(canvasId) {
         return {
           sensorId: entry.sensor_id,
           sensorName: entry.sensor_name,
+          originalValue: entry.sliced_value,
           x: (Date.parse(entry.timestamp) - startTime) / 1000,
           y: scaledY,
           group: entry.group_name,

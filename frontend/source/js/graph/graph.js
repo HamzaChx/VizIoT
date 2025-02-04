@@ -1,195 +1,211 @@
-import { getSensorBuffers, clearSensorBuffers, clearEventBuffer, getEventBuffer } from './buffer.js';
-import { updateLegend } from './legend.js';
+import {
+  getSensorBuffers,
+  clearSensorBuffers,
+  clearEventBuffer,
+  getEventBuffer,
+} from "./buffer.js";
+import { updateLegend } from "./legend.js";
+import { handleCanvasClick } from "./clickHandler.js";
 
 export default class GraphManager {
-    constructor(canvasId) {
-        this.canvasId = canvasId;
-        this.gr = null;
-        this.isDrawing = false;
-        this.isPaused = false;
-        this.groupSensorMap = {};
-    }
+  constructor(canvasId) {
+    this.canvasId = canvasId;
+    this.gr = null;
+    this.isDrawing = false;
+    this.isPaused = false;
+    this.groupSensorMap = {};
+    this.getSensorBuffers = getSensorBuffers;
+  }
 
-    /**
-     * Initializes the graph instance, configures the viewport, and starts rendering if required.
-     * @param {boolean} autoStart - Whether to start rendering immediately after initialization.
-     */
-    initialize(autoStart = false) {
-        GR.ready(() => {
-            this.gr = new GR(this.canvasId);
+  /**
+   * Initializes the graph instance, configures the viewport, and starts rendering if required.
+   * @param {boolean} autoStart - Whether to start rendering immediately after initialization.
+   */
+  initialize(autoStart = false) {
+    GR.ready(() => {
+      this.gr = new GR(this.canvasId);
 
-            // Configure the viewport
-            this.gr.clearws();
-            this.gr.setviewport(0.1, 0.95, 0.1, 0.95);
+      this.gr.clearws();
+      this.gr.setviewport(0.1, 0.95, 0.1, 0.95);
 
-            if (autoStart) this.startDrawing();
-        });
-    }
+      const canvasElement = document.getElementById(this.canvasId);
+      canvasElement.addEventListener("click", (event) =>
+        handleCanvasClick(event, canvasElement, this)
+      );
 
-    /**
-     * Starts the graph rendering process.
-     */
-    startDrawing() {
-        if (!this.gr) {
-            console.error("GR instance not initialized.");
-            return;
-        }
+      if (autoStart) this.startDrawing();
+    });
+  }
 
-        this.isDrawing = true;
-        this.isPaused = false; // Ensure it’s not paused when starting
-        this.drawFrame();
-    }
+  initialize(autoStart = false) {
+    GR.ready(() => {
+      this.gr = new GR(this.canvasId);
+      this.gr.clearws();
+      this.gr.setviewport(0.05, 0.95, 0.05, 0.95);
 
-    /**
-     * Pauses the graph rendering process.
-     */
-    pauseDrawing() {
-        if (this.isDrawing) {
-            this.isPaused = true;
-            console.log("Graph rendering paused.");
-        }
-    }
-
-    /**
-     * Stops the graph rendering process completely.
-     */
-    stopDrawing() {
-        this.isDrawing = false;
-        this.isPaused = false;
-    }
-
-    /**
-     * Resets the graph by clearing buffers and reinitializing.
-     */
-    reset() {
-        this.stopDrawing();
-        clearSensorBuffers();
-        clearEventBuffer();
-        this.gr.clearws();
-        updateLegend({});
-        this.startDrawing();
-    }
-
-    /**
-     * Draws a single frame of the graph, including axes, grid, and sensor data.
-     */
-    drawFrame() {
-        if (!this.isDrawing || this.isPaused) return;
-
-        // Calculate X-axis range
-        const { xMin, xMax } = this.calculateXRange();
-        const yMin = 0, yMax = 1;
-
-        if (xMin === Infinity || xMax === -Infinity) {
-            requestAnimationFrame(() => this.drawFrame());
-            return;
-        }
-
-        // Configure the graph window
-        this.gr.clearws();
-        this.gr.setwindow(xMin, xMax, yMin, yMax);
-
-        // Draw grid and axes
-        this.gr.setlinecolorind(1);
-        this.gr.grid(0.25, 0.25, 0, 0, 2, 2);
-
-        // Custom axis labels for the x-axis
-        const xTickInterval = Math.ceil((xMax - xMin) / 10) || 1;
-        this.gr.axes(
-            xTickInterval,                        
-            (yMax - yMin) / 10 || 1,              
-            xMin,                          
-            yMin,
-            2,                        
-            0,                              
-            0.005,
-            (tickValue) => Math.round(tickValue)
+      const canvasElement = document.getElementById(this.canvasId);
+      if (canvasElement) {
+        canvasElement.addEventListener("click", (event) =>
+          handleCanvasClick(event, canvasElement, this)
         );
+      }
 
-        // Plot data and update legend
-        const groupColorMap = this.plotSensorData();
+      if (autoStart) this.startDrawing();
+    });
+  }
 
-        this.plotEventLines();
-
-        updateLegend(groupColorMap, this.groupSensorMap);
-
-        // Continue rendering
-        requestAnimationFrame(() => this.drawFrame());
+  /**
+   * Starts the graph rendering process.
+   */
+  startDrawing() {
+    if (!this.gr) {
+      console.error("GR instance not initialized.");
+      return;
     }
 
-    /**
-     * Calculates the global X-axis range across all sensor buffers.
-     * @returns {{xMin: number, xMax: number}} - The X-axis range.
-     */
-    calculateXRange() {
-        const buffers = getSensorBuffers();
-        let xMin = Infinity, xMax = -Infinity;
+    this.isDrawing = true;
+    this.isPaused = false;
+    this.drawFrame();
+  }
 
-        Object.values(buffers).forEach(({ x }) => {
-            if (x.length > 0) {
-                xMin = Math.min(xMin, x[0]);
-                xMax = Math.max(xMax, x[x.length - 1]);
-            }
-        });
+  /**
+   * Pauses the graph rendering process.
+   */
+  pauseDrawing() {
+    if (this.isDrawing) {
+      this.isPaused = true;
+      // this.rewindOffset = 0;
+    }
+  }
 
-        return { xMin, xMax };
+  /**
+   * Stops the graph rendering process completely.
+   */
+  stopDrawing() {
+    this.isDrawing = false;
+    this.isPaused = false;
+  }
+
+  /**
+   * Resets the graph by clearing buffers and reinitializing.
+   */
+  reset() {
+    this.stopDrawing();
+
+    clearSensorBuffers();
+    clearEventBuffer();
+    this.gr.clearws();
+    updateLegend({});
+
+    this.startDrawing();
+  }
+
+  /**
+   * Draws a single frame of the graph, including axes, grid, and sensor data.
+   */
+  drawFrame() {
+    if (!this.isDrawing) return;
+
+    const { xMin, xMax } = this.calculateXRange();
+    const yMin = 0,
+      yMax = 1;
+
+    if (xMin === Infinity || xMax === -Infinity) {
+      requestAnimationFrame(() => this.drawFrame());
+      return;
     }
 
-    /**
-     * Plots sensor data on the graph and assigns colors to groups.
-     * @returns {Object} - The group color map.
-     */
-    plotSensorData() {
-        const buffers = getSensorBuffers();
-        const groupColorMap = {};
-        let nextColorIndex = 4;
-    
-        Object.entries(buffers).forEach(([_, { x, y, group }]) => {
-            if (x.length > 0 && y.length > 0) {
-                // Assign a color to the group if not already assigned
-                if (!(group in groupColorMap)) {
-                    groupColorMap[group] = nextColorIndex--;
-                    if (nextColorIndex < 1) nextColorIndex = 8;
-                }
+    this.gr.clearws();
+    this.gr.setwindow(xMin, xMax, yMin, yMax);
 
-                // Plot the data
-                this.gr.setlinecolorind(groupColorMap[group]);
-                this.gr.polyline(x.length, x, y);
-            }
-        });
+    this.gr.setlinecolorind(1);
+    this.gr.grid(0.25, 0.25, 0, 0, 2, 2);
 
-        return groupColorMap;
+    const xTickInterval = Math.ceil((xMax - xMin) / 10) || 1;
+    this.gr.axes(
+      xTickInterval,
+      (yMax - yMin) / 10 || 1,
+      xMin,
+      yMin,
+      2,
+      0,
+      0.005,
+      (tickValue) => Math.round(tickValue)
+    );
+
+    const groupColorMap = this.plotSensorData();
+
+    this.plotEventLines();
+
+    updateLegend(groupColorMap, this.groupSensorMap);
+
+    if (!this.isPaused) {
+      requestAnimationFrame(() => this.drawFrame());
     }
+  }
 
-    plotEventLines() {
+  /**
+   * Calculates the global X-axis range across all sensor buffers.
+   * @returns {{xMin: number, xMax: number}} - The X-axis range.
+   */
+  calculateXRange() {
+    const buffers = getSensorBuffers();
+    let xMin = Infinity,
+      xMax = -Infinity;
 
-        const events = getEventBuffer();
-        if (!events.length) return;
+    Object.values(buffers).forEach(({ x }) => {
+      if (x.length > 0) {
+        xMin = Math.min(xMin, x[0]);
+        xMax = Math.max(xMax, x[x.length - 1]);
+      }
+    });
 
-        // Get current window bounds
-        const { xMin, xMax } = this.calculateXRange();
-        const yMin = 0, yMax = 1;
-    
+    return { xMin, xMax };
+  }
 
-        events.forEach(event => {
+  /**
+   * Plots sensor data on the graph and assigns colors to groups.
+   * @returns {Object} - The group color map.
+   */
+  plotSensorData() {
+    const buffers = getSensorBuffers();
+    const groupColorMap = {};
+    let nextColorIndex = 4;
 
-            if (event.x < xMin || event.x > xMax) return;
+    Object.entries(buffers).forEach(([_, { x, y, group }]) => {
+      if (x.length > 0 && y.length > 0) {
+        if (!(group in groupColorMap)) {
+          groupColorMap[group] = nextColorIndex--;
+          if (nextColorIndex < 1) nextColorIndex = 8;
+        }
 
-            // Set line style based on ranking
-            this.gr.setlinecolorind(2); // Red color
-            this.gr.setlinetype(event.ranking >= 0.5 ? 1 : 3);  // Solid/dashed
-            this.gr.setlinewidth(2);
+        this.gr.setlinecolorind(groupColorMap[group]);
+        this.gr.polyline(x.length, x, y);
+      }
+    });
 
-            // Draw vertical line
-            const xCoords = [event.x, event.x];
-            const yCoords = [yMin, yMax];
-            this.gr.polyline(2, xCoords, yCoords);
+    return groupColorMap;
+  }
 
-        });
+  plotEventLines() {
+    const events = getEventBuffer();
+    if (!events.length) return;
 
-        this.gr.setlinewidth(1);
-        this.gr.setlinetype(1);
+    const { xMin, xMax } = this.calculateXRange();
 
-    }
+    events.forEach((event) => {
+      if (event.x < xMin || event.x > xMax) return;
 
+      this.gr.setlinecolorind(1);
+      this.gr.setlinetype(3);
+      this.gr.setlinewidth(2);
+
+      const xCoords = [event.x, event.x];
+      const yCoords = [0, 1];
+      this.gr.polyline(2, xCoords, yCoords);
+    });
+
+    this.gr.setlinewidth(1);
+    this.gr.setlinetype(1);
+  }
 }
