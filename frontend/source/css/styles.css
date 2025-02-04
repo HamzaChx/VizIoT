@@ -21,7 +21,7 @@
 
 .col-10.position-relative {
   position: relative;
-  overflow: visible; /* Allow the popover to appear outside */
+  overflow: visible;
 }
 
 .modal-dialog {
