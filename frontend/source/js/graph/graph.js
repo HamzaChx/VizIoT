@@ -15,6 +15,8 @@ export default class GraphManager {
     this.isPaused = false;
     this.groupSensorMap = {};
     this.getSensorBuffers = getSensorBuffers;
+    this.previousLatestX = undefined;
+    this.previousWindow = undefined;
   }
 
   /**
@@ -71,7 +73,6 @@ export default class GraphManager {
   pauseDrawing() {
     if (this.isDrawing) {
       this.isPaused = true;
-      // this.rewindOffset = 0;
     }
   }
 
@@ -94,6 +95,9 @@ export default class GraphManager {
     this.gr.clearws();
     updateLegend({});
 
+    this.previousLatestX = undefined;
+    this.previousWindow = undefined;
+
     this.startDrawing();
   }
 
@@ -103,7 +107,13 @@ export default class GraphManager {
   drawFrame() {
     if (!this.isDrawing) return;
 
-    const { xMin, xMax } = this.calculateXRange();
+    const range = this.calculateSlidingWindowXRange();
+    if (!range) {
+      requestAnimationFrame(() => this.drawFrame());
+      return;
+    }
+
+    let { xMin, xMax } = range;
     const yMin = 0,
       yMax = 1;
 
@@ -140,25 +150,42 @@ export default class GraphManager {
       requestAnimationFrame(() => this.drawFrame());
     }
   }
-
   /**
    * Calculates the global X-axis range across all sensor buffers.
-   * @returns {{xMin: number, xMax: number}} - The X-axis range.
+   * @returns {{xMin: number, xMax: number}} - The newWindow object with xMin and xMax values.
    */
-  calculateXRange() {
+  calculateSlidingWindowXRange() {
     const buffers = getSensorBuffers();
-    let xMin = Infinity,
-      xMax = -Infinity;
-
+    let latestX = -Infinity;
+    
     Object.values(buffers).forEach(({ x }) => {
-      if (x.length > 0) {
-        xMin = Math.min(xMin, x[0]);
-        xMax = Math.max(xMax, x[x.length - 1]);
+      if (x && x.length > 0) {
+        const bufferLatest = x[x.length - 1];
+        if (bufferLatest > latestX) {
+          latestX = bufferLatest;
+        }
       }
     });
-
-    return { xMin, xMax };
+    
+    if (latestX === -Infinity) {
+      return this.previousWindow || null;
+    }
+    
+    const updateThreshold = 0.05; // for example, 50 ms
+    if (this.previousLatestX !== undefined && (latestX - this.previousLatestX) < updateThreshold) {
+      return this.previousWindow;
+    }
+    
+    const windowDuration = 30; // seconds
+    const newWindow = { xMin: latestX - windowDuration, xMax: latestX };
+    
+    this.previousLatestX = latestX;
+    this.previousWindow = newWindow;
+    
+    return newWindow;
   }
+  
+  
 
   getBoundingClientRect() {
     const canvas = document.getElementById(this.canvasId);
@@ -169,12 +196,12 @@ export default class GraphManager {
     const viewportEnd = this.viewportSettings.end;
 
     return {
-        left: canvasRect.left + (canvasRect.width * viewportStart),
-        top: canvasRect.top + (canvasRect.height * viewportStart),
-        width: canvasRect.width * (viewportEnd - viewportStart),
-        height: canvasRect.height * (viewportEnd - viewportStart),
-        right: canvasRect.left + (canvasRect.width * viewportEnd),
-        bottom: canvasRect.top + (canvasRect.height * viewportEnd)
+      left: canvasRect.left + canvasRect.width * viewportStart,
+      top: canvasRect.top + canvasRect.height * viewportStart,
+      width: canvasRect.width * (viewportEnd - viewportStart),
+      height: canvasRect.height * (viewportEnd - viewportStart),
+      right: canvasRect.left + canvasRect.width * viewportEnd,
+      bottom: canvasRect.top + canvasRect.height * viewportEnd,
     };
   }
 
@@ -187,18 +214,46 @@ export default class GraphManager {
     const groupColorMap = {};
     let nextColorIndex = 4;
 
-    Object.entries(buffers).forEach(([_, { x, y, group }]) => {
+
+    const range = this.calculateSlidingWindowXRange();
+    if (!range) return groupColorMap;
+    const { xMin, xMax } = range;
+
+    const computedGroupSensorMap = {};
+
+    Object.entries(buffers).forEach(([_, { x, y, group, sensorName }]) => {
       if (x.length > 0 && y.length > 0) {
         if (!(group in groupColorMap)) {
           groupColorMap[group] = nextColorIndex--;
           if (nextColorIndex < 1) nextColorIndex = 8;
         }
 
+        if (!computedGroupSensorMap[group]) {
+          computedGroupSensorMap[group] = [];
+        }
+        if (!computedGroupSensorMap[group].includes(sensorName)) {
+          computedGroupSensorMap[group].push(sensorName);
+        }
+
+        let plotX = [...x];
+        let plotY = [...y];
+
+        if (plotX[0] > xMin) {
+          plotX.unshift(xMin);
+          plotY.unshift(plotY[0]);
+        }
+
+        if (plotX[plotX.length - 1] < xMax) {
+          plotX.push(xMax);
+          plotY.push(plotY[plotY.length - 1]);
+        }
+
         this.gr.setlinecolorind(groupColorMap[group]);
-        this.gr.polyline(x.length, x, y);
+        this.gr.polyline(plotX.length, plotX, plotY);
       }
     });
 
+    this.groupSensorMap = computedGroupSensorMap;
     return groupColorMap;
   }
 
@@ -206,7 +261,7 @@ export default class GraphManager {
     const events = getEventBuffer();
     if (!events.length) return;
 
-    const { xMin, xMax } = this.calculateXRange();
+    const { xMin, xMax } = this.calculateSlidingWindowXRange();
 
     events.forEach((event) => {
       if (event.x < xMin || event.x > xMax) return;
