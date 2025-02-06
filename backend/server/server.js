@@ -70,6 +70,7 @@ app.post('/pause-stream', (req, res) => {
         const streamData = activeStreams.get(stream);
         streamData.isPaused = true;
         res.status(200).send("Stream paused");
+        console.log('Stream paused');
     } else {
         res.status(404).send("Stream not found");
     }
