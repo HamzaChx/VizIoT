@@ -278,4 +278,9 @@ export default class GraphManager {
     this.gr.setlinewidth(1);
     this.gr.setlinetype(1);
   }
+
+  getEventBuffer() {
+    return getEventBuffer();
+  }
+
 }
