@@ -65,6 +65,7 @@ export function updateEventBuffer(events) {
         sensorId: event.sensor_id
     }));
 }
+
 export function getEventBuffer() {
     return eventBuffer;
 }

@@ -123,7 +123,7 @@ function renderEventContent(eventInfo) {
   return `
       <div class="list-group-item">
           <div class="row">
-              <div class="col-6">
+              <div>
                   <small class="text-muted">Event Name</small>
                   <div class="fw-bold">${eventInfo.name}</div>
               </div>
@@ -143,7 +143,7 @@ function renderEventContent(eventInfo) {
 }
 
 function renderSensorsContent(sensors) {
-  return sensors.map(sensor => `
+  return sensors.map((sensor, index) => `
       <div class="list-group-item">
           <div class="d-flex justify-content-between align-items-center mb-2">
               <h6 class="mb-0">${sensor.sensorName}</h6>
@@ -160,5 +160,6 @@ function renderSensorsContent(sensors) {
               </div>
           </div>
       </div>
+      ${index < sensors.length - 1 ? '<hr class="mt-2 mb-3"/>' : ''}
   `).join('');
 }
