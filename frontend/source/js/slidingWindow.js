@@ -35,6 +35,19 @@ slider.addEventListener("input", (event) => {
   });
 });
 
+slider.addEventListener("wheel", (event) => {
+  event.preventDefault();
+  
+  const step = 1;
+  const direction = event.deltaY > 0 ? -step : step;
+  const newValue = parseInt(slider.value) + direction;
+
+  if (newValue >= slider.min && newValue <= slider.max) {
+      slider.value = newValue;
+      slider.dispatchEvent(new Event("input"));
+  }
+}, { passive: false });
+
 document.getElementById("pause-button").addEventListener("click", () => {
   if (!eventSource || isPaused) return;
 
@@ -91,6 +104,8 @@ function startSlidingWindowStream(canvasId) {
   lastTimestamp = null;
   startTime = null;
   window.startTime = null;
+  window.previousLatestX = undefined;
+  window.previousWindow = undefined;
 
   graphManager = new GraphManager(canvasId);
   graphManager.initialize();
@@ -151,6 +166,12 @@ function startSlidingWindowStream(canvasId) {
       startSlidingWindowStream(canvasId);
     }, 5000);
   };
+
+  eventSource.addEventListener('close', () => {
+    eventSource.close();
+    eventSource = null;
+  });
+
 }
 
 /**
@@ -171,6 +192,10 @@ function stopSlidingWindowStream() {
     graphManager.reset();
     graphManager = null;
   }
+
+  window.previousLatestX = undefined;
+  window.previousWindow = undefined;
+
 }
 
 export { startSlidingWindowStream, stopSlidingWindowStream };
