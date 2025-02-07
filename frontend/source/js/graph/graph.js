@@ -304,9 +304,16 @@ export default class GraphManager {
     events.forEach((event) => {
       if (event.x < xMin || event.x > xMax) return;
 
-      this.gr.setlinecolorind(1);
-      this.gr.setlinetype(3);
-      this.gr.setlinewidth(2);
+      if (event.isImportant) {
+        this.gr.setlinecolorind(2);
+        this.gr.setlinetype(1);
+        this.gr.setlinewidth(2);
+      }
+      else {
+        this.gr.setlinecolorind(1);
+        this.gr.setlinetype(3);
+        this.gr.setlinewidth(1);	
+      }
 
       const xCoords = [event.x, event.x];
       const yCoords = [0, 1];
@@ -315,6 +322,7 @@ export default class GraphManager {
 
     this.gr.setlinewidth(1);
     this.gr.setlinetype(1);
+    this.gr.setlinecolorind(1);
   }
 
   getEventBuffer() {

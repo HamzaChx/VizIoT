@@ -46,6 +46,7 @@ const CREATE_TABLE_QUERIES = {
       timestamp_id INTEGER PRIMARY KEY AUTOINCREMENT,
       event_id INTEGER NOT NULL,
       timestamp TEXT NOT NULL,
+      is_important BOOLEAN DEFAULT FALSE,
       FOREIGN KEY (event_id) REFERENCES ProcessEvents(event_id)
     );
   `,

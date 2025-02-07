@@ -10,7 +10,10 @@ export async function fetchEventTimestamps(db, rawData, start, end) {
         et.timestamp,
         pe.sensor_id,
         pe.name as event_name,
-        pe.ranking
+        pe.ranking,
+        et.is_important,
+        et.timestamp_id,
+        et.event_id
       FROM EventTimestamps et
       JOIN ProcessEvents pe ON et.event_id = pe.event_id
       WHERE pe.sensor_id IN (${sensorIds.join(",")})

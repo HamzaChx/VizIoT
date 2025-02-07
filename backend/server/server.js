@@ -117,6 +117,25 @@ app.get('/stream-sliding-window', async (req, res) => {
     }
 });
 
+app.post("/api/annotations", async (req, res) => {
+  try {
+    const db = await initializeDatabase();
+    const { event_id, timestamp_id, timestamp, is_important } = req.body;
+        
+        await db.run(
+            `UPDATE EventTimestamps 
+             SET is_important = ?
+             WHERE timestamp_id = ? AND event_id = ?`,
+            [is_important, timestamp_id, event_id]
+        );
+        
+        res.status(200).send("Annotation updated successfully.");
+    } catch (error) {
+    console.error(`Error adding annotation: ${error.message}`);
+    res.status(500).send("Failed to add annotation.");
+  }
+});
+
 
 app.get("/api/sensors", async (req, res) => {
   try {

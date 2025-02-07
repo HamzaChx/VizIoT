@@ -57,12 +57,15 @@ export function cleanupUnusedSensors(activeSensorIds) {
 
 export function updateEventBuffer(events) {
     if (!events || !window.startTime) return;
-    
+
     eventBuffer = events.map(event => ({
         x: (Date.parse(event.timestamp) - window.startTime) / 1000,
         name: event.event_name,
         ranking: event.ranking,
-        sensorId: event.sensor_id
+        sensorId: event.sensor_id,
+        isImportant: event.is_important,
+        event_id: event.event_id,
+        timestamp_id: event.timestamp_id,
     }));
 }
 

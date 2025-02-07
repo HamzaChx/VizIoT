@@ -1,4 +1,5 @@
 import { formatDateWithOffset } from "../utils.js";
+import { getEventBuffer } from "./buffer.js";
 
 export function setupModalDrag(modal) {
   const dialog = modal.querySelector(".modal-dialog");
@@ -74,12 +75,18 @@ export function showCombinedModal(eventInfo, sensors) {
       </div>
       <div class="modal-body">
           <ul class="nav nav-tabs" role="tablist">
-              ${eventInfo ? `
+              ${
+                eventInfo
+                  ? `
                   <li class="nav-item">
                       <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#event-tab">Event</button>
                   </li>
-              ` : ''}
-              ${sensors.length > 0 ? `
+              `
+                  : ""
+              }
+              ${
+                sensors.length > 0
+                  ? `
                   <li class="nav-item">
                       <button class="nav-link ${
                         !eventInfo ? "active" : ""
@@ -135,9 +142,60 @@ function initializeTabs(modal) {
       e.target.classList.add("active");
     });
   });
+
+  modal.querySelectorAll(".toggle-importance").forEach((button) => {
+    button.addEventListener("click", async (e) => {
+      const eventId = e.target.dataset.eventId;
+      const timestampId = e.target.dataset.timestampId;
+      const timestamp = e.target.dataset.timestamp;
+      const isCurrentlyImportant = e.target.classList.contains("btn-warning");
+      
+      try {
+        const response = await fetch("/api/annotations", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            event_id: eventId,
+            timestamp_id: timestampId,
+            timestamp: timestamp,
+            is_important: !isCurrentlyImportant,
+          }),
+        });
+
+        if (response.ok) {
+          // Toggle button appearance
+          e.target.classList.toggle("btn-warning");
+          e.target.classList.toggle("btn-outline-secondary");
+          e.target.innerHTML = `
+                    <i class="fas fa-star me-1"></i>
+                    ${!isCurrentlyImportant ? "Important" : "Mark as Important"}
+                `;
+
+          // Update event buffer
+          const eventBuffer = getEventBuffer();
+          const event = eventBuffer.find(
+            (e) => e.timestamp_id === parseInt(timestampId)
+          );
+          if (event) {
+            event.isImportant = !isCurrentlyImportant;
+          }
+        }
+      } catch (error) {
+        console.error("Error updating event importance:", error);
+      }
+    });
+  });
 }
 
 function renderEventContent(eventInfo) {
+  const date = new Date(eventInfo.x * 1000 + window.startTime);
+  const timestamp = formatDateWithOffset(date);
+
+  const buttonClass = eventInfo.isImportant ? "btn-warning" : "btn-outline-secondary";
+  const buttonText = eventInfo.isImportant ? "Important" : "Mark as Important";
+
   return `
       <div class="list-group-item">
           <div class="row">
@@ -153,9 +211,18 @@ function renderEventContent(eventInfo) {
               </div>
               <div class="col-6">
                   <small class="text-muted">Time</small>
-                  <div class="fw-bold">${new Date(eventInfo.x * 1000 + window.startTime).toLocaleString()}</div>
+                  <div class="fw-bold">${new Date(
+                    eventInfo.x * 1000 + window.startTime
+                  ).toLocaleString()}</div>
               </div>
           </div>
+          <button class="btn ${buttonClass} btn-sm mt-3 me-2 toggle-importance" 
+                data-event-id="${eventInfo.event_id}"
+                data-timestamp-id="${eventInfo.timestamp_id}"
+                data-timestamp="${timestamp}">
+            <i class="fas fa-star me-1"></i>
+            ${buttonText}
+          </button>
       </div>
   `;
 }
