@@ -1,3 +1,5 @@
+import { formatDateWithOffset } from "../utils.js";
+
 export function setupModalDrag(modal) {
   const dialog = modal.querySelector(".modal-dialog");
   const header = dialog.querySelector(".modal-header");
@@ -57,8 +59,8 @@ export function showModal(content) {
   const modal = document.getElementById("dynamic-modal");
   const modalContent = modal.querySelector(".modal-content");
   modalContent.innerHTML = content;
-  modal.classList.add('show');
-  modal.style.display = 'block';
+  modal.classList.add("show");
+  modal.style.display = "block";
   setupModalDrag(modal);
   setupModalClose(modal);
   return modal;
@@ -79,23 +81,37 @@ export function showCombinedModal(eventInfo, sensors) {
               ` : ''}
               ${sensors.length > 0 ? `
                   <li class="nav-item">
-                      <button class="nav-link ${!eventInfo ? 'active' : ''}" data-bs-toggle="tab" data-bs-target="#sensor-tab">
+                      <button class="nav-link ${
+                        !eventInfo ? "active" : ""
+                      }" data-bs-toggle="tab" data-bs-target="#sensor-tab">
                           Sensors (${sensors.length})
                       </button>
                   </li>
-              ` : ''}
+              `
+                  : ""
+              }
           </ul>
           <div class="tab-content mt-3">
-              ${eventInfo ? `
+              ${
+                eventInfo
+                  ? `
                   <div class="tab-pane fade show active" id="event-tab">
                       ${renderEventContent(eventInfo)}
                   </div>
-              ` : ''}
-              ${sensors.length > 0 ? `
-                  <div class="tab-pane fade ${!eventInfo ? 'show active' : ''}" id="sensor-tab">
+              `
+                  : ""
+              }
+              ${
+                sensors.length > 0
+                  ? `
+                  <div class="tab-pane fade ${
+                    !eventInfo ? "show active" : ""
+                  }" id="sensor-tab">
                       ${renderSensorsContent(sensors)}
                   </div>
-              ` : ''}
+              `
+                  : ""
+              }
           </div>
       </div>
   `;
@@ -105,17 +121,19 @@ export function showCombinedModal(eventInfo, sensors) {
 }
 
 function initializeTabs(modal) {
-  modal.querySelectorAll('[data-bs-toggle="tab"]').forEach(tab => {
-      tab.addEventListener('click', (e) => {
-          e.preventDefault();
-          const target = document.querySelector(e.target.dataset.bsTarget);
-          modal.querySelectorAll('.tab-pane').forEach(pane => 
-              pane.classList.remove('show', 'active'));
-          modal.querySelectorAll('.nav-link').forEach(link => 
-              link.classList.remove('active'));
-          target.classList.add('show', 'active');
-          e.target.classList.add('active');
-      });
+  modal.querySelectorAll('[data-bs-toggle="tab"]').forEach((tab) => {
+    tab.addEventListener("click", (e) => {
+      e.preventDefault();
+      const target = document.querySelector(e.target.dataset.bsTarget);
+      modal
+        .querySelectorAll(".tab-pane")
+        .forEach((pane) => pane.classList.remove("show", "active"));
+      modal
+        .querySelectorAll(".nav-link")
+        .forEach((link) => link.classList.remove("active"));
+      target.classList.add("show", "active");
+      e.target.classList.add("active");
+    });
   });
 }
 
@@ -143,7 +161,9 @@ function renderEventContent(eventInfo) {
 }
 
 function renderSensorsContent(sensors) {
-  return sensors.map((sensor, index) => `
+  return sensors
+    .map(
+      (sensor, index) => `
       <div class="list-group-item">
           <div class="d-flex justify-content-between align-items-center mb-2">
               <h6 class="mb-0">${sensor.sensorName}</h6>
@@ -160,6 +180,8 @@ function renderSensorsContent(sensors) {
               </div>
           </div>
       </div>
-      ${index < sensors.length - 1 ? '<hr class="mt-2 mb-3"/>' : ''}
-  `).join('');
+      ${index < sensors.length - 1 ? '<hr class="mt-2 mb-3"/>' : ""}
+  `
+    )
+    .join("");
 }

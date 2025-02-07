@@ -45,7 +45,7 @@ export default class GraphManager {
       const canvasElement = document.getElementById(this.canvasId);
       if (canvasElement) {
         canvasElement.addEventListener("click", (event) =>
-          handleCanvasClick(event, canvasElement, this)
+          handleCanvasClick(event, this)
         );
       }
 
@@ -100,6 +100,44 @@ export default class GraphManager {
 
     this.startDrawing();
   }
+
+  // /**
+  //  * Highlights the selected sensors by drawing their lines with emphasis
+  //  * @param {Array} sensorIds - Array of sensor IDs to highlight
+  //  */
+  // highlightSensors(sensorIds) {
+  //   const buffers = getSensorBuffers();
+  //   const range = this.calculateSlidingWindowXRange();
+  //   if (!range) return;
+  //   const { xMin, xMax } = range;
+
+  //   // Draw highlighted sensors on top
+  //   sensorIds.forEach((sensorId) => {
+  //     const buffer = buffers[sensorId];
+  //     if (!buffer || !buffer.x.length) return;
+
+  //     let plotX = [...buffer.x];
+  //     let plotY = [...buffer.y];
+
+  //     // Pad boundaries
+  //     if (plotX[0] > xMin) {
+  //       plotX.unshift(xMin);
+  //       plotY.unshift(plotY[0]);
+  //     }
+  //     if (plotX[plotX.length - 1] < xMax) {
+  //       plotX.push(xMax);
+  //       plotY.push(plotY[plotY.length - 1]);
+  //     }
+
+  //     // Draw highlighted line
+  //     this.gr.setlinecolorind(7); // Yellow highlight
+  //     this.gr.setlinewidth(3); // Thicker line
+  //     this.gr.polyline(plotX.length, plotX, plotY);
+  //   });
+
+  //   this.gr.setlinewidth(1); // Reset line width
+  //   this.gr.setlinecolorind(1); // Reset line color
+  // }
 
   /**
    * Draws a single frame of the graph, including axes, grid, and sensor data.
@@ -157,7 +195,7 @@ export default class GraphManager {
   calculateSlidingWindowXRange() {
     const buffers = getSensorBuffers();
     let latestX = -Infinity;
-    
+
     Object.values(buffers).forEach(({ x }) => {
       if (x && x.length > 0) {
         const bufferLatest = x[x.length - 1];
@@ -166,26 +204,27 @@ export default class GraphManager {
         }
       }
     });
-    
+
     if (latestX === -Infinity) {
       return this.previousWindow || null;
     }
-    
+
     const updateThreshold = 0.05; // for example, 50 ms
-    if (this.previousLatestX !== undefined && (latestX - this.previousLatestX) < updateThreshold) {
+    if (
+      this.previousLatestX !== undefined &&
+      latestX - this.previousLatestX < updateThreshold
+    ) {
       return this.previousWindow;
     }
-    
+
     const windowDuration = 30; // seconds
     const newWindow = { xMin: latestX - windowDuration, xMax: latestX };
-    
+
     this.previousLatestX = latestX;
     this.previousWindow = newWindow;
-    
+
     return newWindow;
   }
-  
-  
 
   getBoundingClientRect() {
     const canvas = document.getElementById(this.canvasId);
@@ -213,7 +252,6 @@ export default class GraphManager {
     const buffers = getSensorBuffers();
     const groupColorMap = {};
     let nextColorIndex = 4;
-
 
     const range = this.calculateSlidingWindowXRange();
     if (!range) return groupColorMap;
@@ -282,5 +320,4 @@ export default class GraphManager {
   getEventBuffer() {
     return getEventBuffer();
   }
-
 }

@@ -6,7 +6,7 @@ import { showCombinedModal } from "./modalUtils.js";
  * @param {HTMLCanvasElement} canvas - The canvas element.
  * @param {Object} graphManager - An instance of GraphManager.
  */
-export function handleCanvasClick(event, canvas, graphManager) {
+export function handleCanvasClick(event, graphManager) {
   const rect = graphManager.getBoundingClientRect();
   if (!rect) return;
 
@@ -101,7 +101,6 @@ function getSensorsInRegion(timestamp, graphManager, graphY) {
     }
   });
 
-  // Sort results by distance to click point for better relevance
   results.sort((a, b) => {
     const bufferA = buffers[a.sensorId];
     const bufferB = buffers[b.sensorId];
