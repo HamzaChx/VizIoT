@@ -98,10 +98,7 @@ export default class GraphManager {
     this.gr.clearws();
     updateLegend({});
 
-    this.previousLatestX = undefined;
-    this.previousWindow = undefined;
-
-    this.startDrawing();
+    this.gr.updatews();
   }
 
   /**
@@ -139,7 +136,7 @@ export default class GraphManager {
 
     // Highlight event line
     if (this.highlightedEvent) {
-      this.gr.setlinecolorind(9);
+      this.gr.setlinecolorind(6);
       this.gr.setlinetype(1);
       this.gr.setlinewidth(3);
       const xCoords = [this.highlightedEvent.x, this.highlightedEvent.x];
@@ -223,7 +220,10 @@ export default class GraphManager {
     });
 
     if (latestX === -Infinity) {
-      return this.previousWindow || null;
+      if (!this.previousWindow) {
+        return { xMin: 0, xMax: 30 };
+      }
+      return this.previousWindow;
     }
 
     const updateThreshold = 0.05; // for example, 50 ms
@@ -325,11 +325,10 @@ export default class GraphManager {
         this.gr.setlinecolorind(2);
         this.gr.setlinetype(1);
         // this.gr.setlinewidth(2);
-      }
-      else {
+      } else {
         this.gr.setlinecolorind(1);
         this.gr.setlinetype(3);
-        // this.gr.setlinewidth(1);	
+        // this.gr.setlinewidth(1);
       }
 
       const xCoords = [event.x, event.x];
