@@ -70,14 +70,14 @@ export async function storeSensorData(sensorData) {
 
       const { sensor_id, type } = sensor;
 
-      let lastKnownValue = null;
+      let lastValidValue = null;
+      const sortedTimestamps = Object.entries(dataPoints).sort(([a], [b]) => new Date(a) - new Date(b));
 
-      for (const [timestamp, rawValue] of Object.entries(dataPoints)) {
+      for (const [timestamp, rawValue] of sortedTimestamps) {
         let processedValue = null;
+        let valueToStore = null;
 
-        if (rawValue == null) {
-          processedValue = lastKnownValue;
-        } else {
+        if (rawValue !== null) {
           if (type === "boolean") {
             processedValue = parseBinary(rawValue);
           } else if (type === "string") {
@@ -86,26 +86,28 @@ export async function storeSensorData(sensorData) {
           } else {
             processedValue = rawValue;
           }
-          lastKnownValue = processedValue;
+          lastValidValue = processedValue;
+          valueToStore = processedValue;
+        } else if (lastValidValue !== null) {
+          valueToStore = lastValidValue;
         }
 
-        if (processedValue == null) continue;
-
-        await insertOrUpdate(
-          db,
-          `INSERT OR REPLACE INTO SensorData (sensor_id, timestamp, value, original_value) VALUES (?, ?, ?, ?)`,
-          [
-            sensor_id,
-            timestamp,
-            processedValue,
-            rawValue,
-          ]
-        );
+        if (valueToStore !== null) {
+          await insertOrUpdate(
+            db,
+            `INSERT OR REPLACE INTO SensorData (sensor_id, timestamp, value, original_value) VALUES (?, ?, ?, ?)`,
+            [
+              sensor_id,
+              timestamp,
+              valueToStore,
+              rawValue
+            ]
+          );
+        }
       }
     }
   });
 }
-
 export async function populateNormalizedValues() {
   const db = await initializeDatabase();
 

@@ -6,22 +6,21 @@ let eventBuffer = [];
  * @param {Array} newGraphData - Array of new data points.
  */
 export function updateSensorBuffers(newGraphData) {
-    const maxBufferSize = 225;
+    const maxBufferSize = 300;
 
     newGraphData.forEach(({ sensorId, sensorName, originalValue, x, y, group }) => {
         const buffer = sensorBuffers[sensorId] || (sensorBuffers[sensorId] = { 
             x: [], 
             y: [], 
             sensorName, 
-            values: [], // Add array to store original values
+            values: [],
             group 
         });
         
         buffer.x.push(x);
         buffer.y.push(y);
-        buffer.values.push(originalValue); // Store original value
+        buffer.values.push(originalValue);
 
-        // Maintain buffer size for all arrays
         if (buffer.x.length > maxBufferSize) {
             buffer.x.splice(0, buffer.x.length - maxBufferSize);
             buffer.y.splice(0, buffer.y.length - maxBufferSize);
@@ -48,10 +47,8 @@ export function clearSensorBuffers() {
 }
 
 export function cleanupUnusedSensors(activeSensorIds) {
-    // Only remove sensors not in active list
     Object.keys(sensorBuffers).forEach(sensorId => {
         const numericId = parseInt(sensorId);
-        // Keep sensor if it's in active list and within current limit
         if (!activeSensorIds.includes(numericId)) {
             delete sensorBuffers[sensorId];
         }
@@ -60,14 +57,18 @@ export function cleanupUnusedSensors(activeSensorIds) {
 
 export function updateEventBuffer(events) {
     if (!events || !window.startTime) return;
-    
+
     eventBuffer = events.map(event => ({
         x: (Date.parse(event.timestamp) - window.startTime) / 1000,
         name: event.event_name,
         ranking: event.ranking,
-        sensorId: event.sensor_id
+        sensorId: event.sensor_id,
+        isImportant: event.is_important,
+        event_id: event.event_id,
+        timestamp_id: event.timestamp_id,
     }));
 }
+
 export function getEventBuffer() {
     return eventBuffer;
 }
@@ -75,38 +76,3 @@ export function getEventBuffer() {
 export function clearEventBuffer() {
     eventBuffer = [];
 }
-
-class HistoricalBuffer {
-    constructor(maxDuration = 30) { // 30 seconds of history
-        this.buffer = new Map();
-        this.maxDuration = maxDuration;
-    }
-
-    addData(timestamp, sensorData) {
-        this.buffer.set(timestamp, {...sensorData});
-        // Clean old data
-        const oldestAllowed = timestamp - this.maxDuration;
-        for (const [t] of this.buffer) {
-            if (t < oldestAllowed) this.buffer.delete(t);
-        }
-    }
-
-    getDataInTimeRange(startTime, endTime) {
-        const data = {};
-        this.buffer.forEach((sensorData, timestamp) => {
-            if (timestamp >= startTime && timestamp <= endTime) {
-                Object.entries(sensorData).forEach(([sensorId, point]) => {
-                    if (!data[sensorId]) {
-                        data[sensorId] = { x: [], y: [], group: point.group };
-                    }
-                    data[sensorId].x.push(point.x);
-                    data[sensorId].y.push(point.y);
-                });
-            }
-        });
-        return data;
-    }
-}
-
-let historicalBuffer = new HistoricalBuffer();
-export { historicalBuffer };

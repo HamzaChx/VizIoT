@@ -15,6 +15,10 @@ export default class GraphManager {
     this.isPaused = false;
     this.groupSensorMap = {};
     this.getSensorBuffers = getSensorBuffers;
+    this.previousLatestX = undefined;
+    this.previousWindow = undefined;
+    this.highlightedSensors = [];
+    this.highlightedEvent = null;
   }
 
   /**
@@ -24,29 +28,27 @@ export default class GraphManager {
   initialize(autoStart = false) {
     GR.ready(() => {
       this.gr = new GR(this.canvasId);
-
       this.gr.clearws();
-      this.gr.setviewport(0.1, 0.95, 0.1, 0.95);
+      this.gr.setcolormap(3);
 
-      const canvasElement = document.getElementById(this.canvasId);
-      canvasElement.addEventListener("click", (event) =>
-        handleCanvasClick(event, canvasElement, this)
+      const viewportStart = 0.05;
+      const viewportEnd = 0.95;
+      this.gr.setviewport(
+        viewportStart,
+        viewportEnd,
+        viewportStart,
+        viewportEnd
       );
 
-      if (autoStart) this.startDrawing();
-    });
-  }
-
-  initialize(autoStart = false) {
-    GR.ready(() => {
-      this.gr = new GR(this.canvasId);
-      this.gr.clearws();
-      this.gr.setviewport(0.05, 0.95, 0.05, 0.95);
+      this.viewportSettings = {
+        start: viewportStart,
+        end: viewportEnd,
+      };
 
       const canvasElement = document.getElementById(this.canvasId);
       if (canvasElement) {
         canvasElement.addEventListener("click", (event) =>
-          handleCanvasClick(event, canvasElement, this)
+          handleCanvasClick(event, this)
         );
       }
 
@@ -74,7 +76,6 @@ export default class GraphManager {
   pauseDrawing() {
     if (this.isDrawing) {
       this.isPaused = true;
-      // this.rewindOffset = 0;
     }
   }
 
@@ -97,16 +98,72 @@ export default class GraphManager {
     this.gr.clearws();
     updateLegend({});
 
-    this.startDrawing();
+    this.gr.updatews();
   }
 
   /**
-   * Draws a single frame of the graph, including axes, grid, and sensor data.
+   * Draws the highlights (sensor lines and event line) on top of the current frame.
+   */
+  drawHighlights() {
+    if (!this.gr) return;
+    const buffers = getSensorBuffers();
+    const range = this.calculateSlidingWindowXRange();
+    if (!range) return;
+    const { xMin, xMax } = range;
+
+    this.gr.setcolormap(3);
+
+    // Highlight sensor lines
+    this.highlightedSensors.forEach((sensorId) => {
+      const buffer = buffers[sensorId];
+      if (!buffer || !buffer.x.length) return;
+
+      let plotX = [...buffer.x];
+      let plotY = [...buffer.y];
+      if (plotX[0] > xMin) {
+        plotX.unshift(xMin);
+        plotY.unshift(plotY[0]);
+      }
+      if (plotX[plotX.length - 1] < xMax) {
+        plotX.push(xMax);
+        plotY.push(plotY[plotY.length - 1]);
+      }
+
+      this.gr.setlinecolorind(6);
+      this.gr.setlinewidth(3);
+      this.gr.polyline(plotX.length, plotX, plotY);
+    });
+
+    // Highlight event line
+    if (this.highlightedEvent) {
+      this.gr.setlinecolorind(6);
+      this.gr.setlinetype(1);
+      this.gr.setlinewidth(3);
+      const xCoords = [this.highlightedEvent.x, this.highlightedEvent.x];
+      const yCoords = [0, 1];
+      this.gr.polyline(2, xCoords, yCoords);
+    }
+
+    // Reset drawing style
+    this.gr.setcolormap(3);
+    this.gr.setlinewidth(1);
+    this.gr.setlinecolorind(1);
+    this.gr.setlinetype(1);
+  }
+
+  /**
+   * Modified drawFrame to call drawHighlights after drawing sensors, events, and legend.
    */
   drawFrame() {
     if (!this.isDrawing) return;
 
-    const { xMin, xMax } = this.calculateXRange();
+    const range = this.calculateSlidingWindowXRange();
+    if (!range) {
+      requestAnimationFrame(() => this.drawFrame());
+      return;
+    }
+
+    let { xMin, xMax } = range;
     const yMin = 0,
       yMax = 1;
 
@@ -134,10 +191,11 @@ export default class GraphManager {
     );
 
     const groupColorMap = this.plotSensorData();
-
     this.plotEventLines();
-
     updateLegend(groupColorMap, this.groupSensorMap);
+
+    // Draw highlights on top.
+    this.drawHighlights();
 
     if (!this.isPaused) {
       requestAnimationFrame(() => this.drawFrame());
@@ -146,21 +204,61 @@ export default class GraphManager {
 
   /**
    * Calculates the global X-axis range across all sensor buffers.
-   * @returns {{xMin: number, xMax: number}} - The X-axis range.
+   * @returns {{xMin: number, xMax: number}} - The newWindow object with xMin and xMax values.
    */
-  calculateXRange() {
+  calculateSlidingWindowXRange() {
     const buffers = getSensorBuffers();
-    let xMin = Infinity,
-      xMax = -Infinity;
+    let latestX = -Infinity;
 
     Object.values(buffers).forEach(({ x }) => {
-      if (x.length > 0) {
-        xMin = Math.min(xMin, x[0]);
-        xMax = Math.max(xMax, x[x.length - 1]);
+      if (x && x.length > 0) {
+        const bufferLatest = x[x.length - 1];
+        if (bufferLatest > latestX) {
+          latestX = bufferLatest;
+        }
       }
     });
 
-    return { xMin, xMax };
+    if (latestX === -Infinity) {
+      if (!this.previousWindow) {
+        return { xMin: 0, xMax: 30 };
+      }
+      return this.previousWindow;
+    }
+
+    const updateThreshold = 0.05; // for example, 50 ms
+    if (
+      this.previousLatestX !== undefined &&
+      latestX - this.previousLatestX < updateThreshold
+    ) {
+      return this.previousWindow;
+    }
+
+    const windowDuration = 30; // seconds
+    const newWindow = { xMin: latestX - windowDuration, xMax: latestX };
+
+    this.previousLatestX = latestX;
+    this.previousWindow = newWindow;
+
+    return newWindow;
+  }
+
+  getBoundingClientRect() {
+    const canvas = document.getElementById(this.canvasId);
+    if (!canvas) return null;
+
+    const canvasRect = canvas.getBoundingClientRect();
+    const viewportStart = this.viewportSettings.start;
+    const viewportEnd = this.viewportSettings.end;
+
+    return {
+      left: canvasRect.left + canvasRect.width * viewportStart,
+      top: canvasRect.top + canvasRect.height * viewportStart,
+      width: canvasRect.width * (viewportEnd - viewportStart),
+      height: canvasRect.height * (viewportEnd - viewportStart),
+      right: canvasRect.left + canvasRect.width * viewportEnd,
+      bottom: canvasRect.top + canvasRect.height * viewportEnd,
+    };
   }
 
   /**
@@ -172,18 +270,45 @@ export default class GraphManager {
     const groupColorMap = {};
     let nextColorIndex = 4;
 
-    Object.entries(buffers).forEach(([_, { x, y, group }]) => {
+    const range = this.calculateSlidingWindowXRange();
+    if (!range) return groupColorMap;
+    const { xMin, xMax } = range;
+
+    const computedGroupSensorMap = {};
+
+    Object.entries(buffers).forEach(([_, { x, y, group, sensorName }]) => {
       if (x.length > 0 && y.length > 0) {
         if (!(group in groupColorMap)) {
           groupColorMap[group] = nextColorIndex--;
           if (nextColorIndex < 1) nextColorIndex = 8;
         }
 
+        if (!computedGroupSensorMap[group]) {
+          computedGroupSensorMap[group] = [];
+        }
+        if (!computedGroupSensorMap[group].includes(sensorName)) {
+          computedGroupSensorMap[group].push(sensorName);
+        }
+
+        let plotX = [...x];
+        let plotY = [...y];
+
+        if (plotX[0] > xMin) {
+          plotX.unshift(xMin);
+          plotY.unshift(plotY[0]);
+        }
+
+        if (plotX[plotX.length - 1] < xMax) {
+          plotX.push(xMax);
+          plotY.push(plotY[plotY.length - 1]);
+        }
+
         this.gr.setlinecolorind(groupColorMap[group]);
-        this.gr.polyline(x.length, x, y);
+        this.gr.polyline(plotX.length, plotX, plotY);
       }
     });
 
+    this.groupSensorMap = computedGroupSensorMap;
     return groupColorMap;
   }
 
@@ -191,14 +316,20 @@ export default class GraphManager {
     const events = getEventBuffer();
     if (!events.length) return;
 
-    const { xMin, xMax } = this.calculateXRange();
+    const { xMin, xMax } = this.calculateSlidingWindowXRange();
 
     events.forEach((event) => {
       if (event.x < xMin || event.x > xMax) return;
 
-      this.gr.setlinecolorind(1);
-      this.gr.setlinetype(3);
-      this.gr.setlinewidth(2);
+      if (event.isImportant) {
+        this.gr.setlinecolorind(2);
+        this.gr.setlinetype(1);
+        // this.gr.setlinewidth(2);
+      } else {
+        this.gr.setlinecolorind(1);
+        this.gr.setlinetype(3);
+        // this.gr.setlinewidth(1);
+      }
 
       const xCoords = [event.x, event.x];
       const yCoords = [0, 1];
@@ -207,5 +338,10 @@ export default class GraphManager {
 
     this.gr.setlinewidth(1);
     this.gr.setlinetype(1);
+    this.gr.setlinecolorind(1);
+  }
+
+  getEventBuffer() {
+    return getEventBuffer();
   }
 }

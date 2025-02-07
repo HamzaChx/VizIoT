@@ -1,35 +1,31 @@
+import { showCombinedModal } from "./modalUtils.js";
+
 /**
- * Handles canvas click events to display sensor information in a modal.
+ * Handles canvas click events to display sensor information in a modal and highlight the clicked line.
  * @param {MouseEvent} event - The mouse event object.
- * @param {HTMLCanvasElement} canvas - The canvas element.
  * @param {Object} graphManager - An instance of GraphManager.
  */
-export function handleCanvasClick(event, canvas, graphManager) {
-    const rect = canvas.getBoundingClientRect();
-    
-    // Get click coordinates relative to canvas (0-1 range)
-    const canvasX = (event.clientX - rect.left) / rect.width;
-    const canvasY = (event.clientY - rect.top) / rect.height;
+export function handleCanvasClick(event, graphManager) {
+  const rect = graphManager.getBoundingClientRect();
+  if (!rect) return;
 
-    // Check if click is within viewport bounds (0.1-0.95 range)
-    if (canvasX < 0.1 || canvasX > 0.95 || canvasY < 0.1 || canvasY > 0.95) {
-        return; // Click outside graph area
-    }
+  const rawX = event.clientX - rect.left;
+  const rawY = event.clientY - rect.top;
+  if (rawX < 0 || rawX > rect.width || rawY < 0 || rawY > rect.height) return;
 
-    // Convert canvas coordinates to graph coordinates
-    const graphX = (canvasX - 0.1) / (0.95 - 0.1);
-    const graphY = (canvasY - 0.1) / (0.95 - 0.1);
+  const graphX = rawX / rect.width;
+  const graphY = 1 - (rawY / rect.height);
+  const timestamp = translateXToTimestamp(graphX, graphManager);
 
-    // Convert to timestamp and group
-    const timestamp = translateXToTimestamp(graphX * canvas.width, graphManager);
-    const group = translateYToGroup(graphY * canvas.height, graphManager);
+  const eventInfo = getEventAtTimestamp(timestamp, graphManager);
+  const sensors = getSensorsInRegion(timestamp, graphManager, graphY);
 
-    if (group) {
-        const sensors = getSensorsInRegion(timestamp, group, graphManager);
-        if (sensors.length > 0) {
-            showModal(sensors);
-        }
-    }
+  graphManager.highlightedEvent = eventInfo;
+  graphManager.highlightedSensors = sensors.map((s) => s.sensorId);
+
+  if (eventInfo || sensors.length > 0) {
+    showCombinedModal(eventInfo, sensors);
+  }
 }
 
 /**
@@ -38,116 +34,90 @@ export function handleCanvasClick(event, canvas, graphManager) {
  * @param {Object} graphManager - An instance of GraphManager.
  * @returns {number} - Timestamp corresponding to X coordinate.
  */
-function translateXToTimestamp(x, graphManager) {
-    const { xMin, xMax } = graphManager.calculateXRange();
-    const canvasWidth = document.getElementById(graphManager.canvasId).width;
-    return xMin + (x / canvasWidth) * (xMax - xMin);
+function translateXToTimestamp(normalizedX, graphManager) {
+  const range = graphManager.calculateSlidingWindowXRange();
+  if (!range) return 0;
+  const { xMin, xMax } = range;
+  return xMin + normalizedX * (xMax - xMin);
 }
-
-/**
- * Translates Y coordinate to a sensor group.
- * @param {number} y - Canvas Y coordinate.
- * @param {Object} graphManager - An instance of GraphManager.
- * @returns {string|null} - Group name corresponding to Y coordinate.
- */
-function translateYToGroup(y, graphManager) {
-    const groupNames = Object.keys(graphManager.groupSensorMap);
-    const groupCount = groupNames.length;
-    const canvasHeight = document.getElementById(graphManager.canvasId).height;
-
-    // Dynamically calculate group height based on canvas height and number of groups
-    const groupHeight = canvasHeight / groupCount;
-
-    // Determine the clicked group index
-    const groupIndex = Math.floor(y / groupHeight);
-
-    // Return the group name if valid, else return null
-    return groupNames[groupIndex] || null;
-}
-
 
 /**
  * Retrieves sensors in the clicked region based on timestamp and group.
  * @param {number} timestamp - The clicked timestamp.
  * @param {string|null} group - The clicked group name.
  * @param {Object} graphManager - An instance of GraphManager.
+ * @param {number} graphY - The Y coordinate of the click in graph space (0-1).
  * @returns {Array<Object>} - Array of sensors in the region.
  */
-function getSensorsInRegion(timestamp, group, graphManager) {
-    const buffers = graphManager.getSensorBuffers();
-    const tolerance = 0.1;
+function getSensorsInRegion(timestamp, graphManager, graphY) {
+  const buffers = graphManager.getSensorBuffers();
+  const xTolerance = 0.5;
+  const yTolerance = 0.05;
+  const results = [];
 
-    return Object.entries(buffers)
-        .filter(([_, data]) => {
-            return (
-                data.group === group &&
-                data.x.some((val) => Math.abs(val - timestamp) <= tolerance)
-            );
-        })
-        .map(([sensorId, data]) => {
-            const closestIndex = data.x.findIndex(
-                (val) => Math.abs(val - timestamp) <= tolerance
-            );
+  const range = graphManager.calculateSlidingWindowXRange();
+  if (!range) return results;
+  const { xMin, xMax } = range;
 
-            if (closestIndex === -1) return null;
+  Object.entries(buffers).forEach(([sensorId, data]) => {
 
-            return {
-                sensorId,
-                sensorName: data.sensorName || "Unknown",
-                value: data.values[closestIndex] || data.y[closestIndex].toFixed(3),
-                timestamp: new Date(timestamp * 1000 + window.startTime).toLocaleString(),
-                group: data.group
-            };
-        })
-        .filter(sensor => sensor !== null);
+    let virtualX = [...data.x];
+    let virtualY = [...data.y];
+    if (virtualX.length === 0) return;
+
+    // Pad boundaries
+    if (virtualX[0] > xMin) {
+      virtualX.unshift(xMin);
+      virtualY.unshift(virtualY[0]);
+    }
+    if (virtualX[virtualX.length - 1] < xMax) {
+      virtualX.push(xMax);
+      virtualY.push(virtualY[virtualY.length - 1]);
+    }
+
+    // Find nearest point
+    const candidates = virtualX
+      .map((val, idx) => ({ x: val, y: virtualY[idx], idx }))
+      .filter((pt) => Math.abs(pt.x - timestamp) <= xTolerance)
+      .sort((a, b) => Math.abs(a.x - timestamp) - Math.abs(b.x - timestamp));
+
+    if (candidates.length > 0) {
+      const candidate = candidates[0];
+      if (Math.abs(candidate.y - graphY) <= yTolerance) {
+        const value =
+          candidate.idx < data.values.length
+            ? data.values[candidate.idx]
+            : "N/A";
+
+        results.push({
+          sensorId,
+          sensorName: data.sensorName || "Unknown",
+          value,
+          timestamp: new Date(
+            timestamp * 1000 + window.startTime
+          ).toLocaleString(),
+          group: data.group,
+        });
+      }
+    }
+  });
+
+  results.sort((a, b) => {
+    const bufferA = buffers[a.sensorId];
+    const bufferB = buffers[b.sensorId];
+    const distA = Math.abs(bufferA.y[bufferA.y.length - 1] - graphY);
+    const distB = Math.abs(bufferB.y[bufferB.y.length - 1] - graphY);
+    return distA - distB;
+  });
+
+  return results;
 }
 
-function showModal(sensors) {
-    const modal = document.getElementById("sensor-modal");
-    const dataList = document.getElementById("sensor-data-list");
+function getEventAtTimestamp(timestamp, graphManager) {
+  const events = graphManager.getEventBuffer();
+  const xTolerance = 0.5;
 
-    dataList.innerHTML = `
-    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header sticky-top bg-white">
-                <h5 class="modal-title">
-                    ${sensors.length} Sensor${sensors.length > 1 ? 's' : ''} Selected
-                </h5>
-                <button type="button" class="btn-close sensor-modal-close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="list-group list-group-flush">
-                    ${sensors.map(sensor => `
-                        <div class="list-group-item">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="mb-0">${sensor.sensorName}</h6>
-                                <span class="badge bg-secondary">${sensor.group}</span>
-                            </div>
-                            <div class="row">
-                                <div class="col-6">
-                                    <small class="text-muted">Value</small>
-                                    <div class="fw-bold">${sensor.value}</div>
-                                </div>
-                                <div class="col-6">
-                                    <small class="text-muted">Time</small>
-                                    <div class="fw-bold">${sensor.timestamp}</div>
-                                </div>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-        </div>
-    </div>`;
-
-    modal.style.display = "block";
-
-    // Add close handlers
-    document.querySelectorAll(".sensor-modal-close").forEach(btn => 
-        btn.onclick = () => modal.style.display = "none"
-    );
-    
-    modal.onclick = (e) => {
-        if (e.target === modal) modal.style.display = "none";
-    };
+  return events.find(event => 
+    Math.abs(event.x - timestamp) <= xTolerance
+  );
 }

@@ -21,7 +21,7 @@
 
 .col-10.position-relative {
   position: relative;
-  overflow: visible; /* Allow the popover to appear outside */
+  overflow: visible;
 }
 
 .modal-dialog {
@@ -38,6 +38,15 @@
 .modal-body {
   overflow-y: auto;
   max-height: calc(80vh - 7.5rem); /* Account for header height */
+}
+
+.modal-draggable {
+  position: fixed;
+  margin: 0;
+}
+
+.cursor-move {
+  cursor: move;
 }
 
 .list-group {
