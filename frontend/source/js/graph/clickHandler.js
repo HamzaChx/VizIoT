@@ -1,9 +1,8 @@
 import { showCombinedModal } from "./modalUtils.js";
 
 /**
- * Handles canvas click events to display sensor information in a modal.
+ * Handles canvas click events to display sensor information in a modal and highlight the clicked line.
  * @param {MouseEvent} event - The mouse event object.
- * @param {HTMLCanvasElement} canvas - The canvas element.
  * @param {Object} graphManager - An instance of GraphManager.
  */
 export function handleCanvasClick(event, graphManager) {
@@ -12,7 +11,6 @@ export function handleCanvasClick(event, graphManager) {
 
   const rawX = event.clientX - rect.left;
   const rawY = event.clientY - rect.top;
-
   if (rawX < 0 || rawX > rect.width || rawY < 0 || rawY > rect.height) return;
 
   const graphX = rawX / rect.width;
@@ -22,8 +20,11 @@ export function handleCanvasClick(event, graphManager) {
   const eventInfo = getEventAtTimestamp(timestamp, graphManager);
   const sensors = getSensorsInRegion(timestamp, graphManager, graphY);
 
+  graphManager.highlightedEvent = eventInfo;
+  graphManager.highlightedSensors = sensors.map((s) => s.sensorId);
+
   if (eventInfo || sensors.length > 0) {
-      showCombinedModal(eventInfo, sensors);
+    showCombinedModal(eventInfo, sensors);
   }
 }
 

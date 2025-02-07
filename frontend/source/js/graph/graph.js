@@ -17,6 +17,8 @@ export default class GraphManager {
     this.getSensorBuffers = getSensorBuffers;
     this.previousLatestX = undefined;
     this.previousWindow = undefined;
+    this.highlightedSensors = [];
+    this.highlightedEvent = null;
   }
 
   /**
@@ -27,6 +29,7 @@ export default class GraphManager {
     GR.ready(() => {
       this.gr = new GR(this.canvasId);
       this.gr.clearws();
+      this.gr.setcolormap(3);
 
       const viewportStart = 0.05;
       const viewportEnd = 0.95;
@@ -101,46 +104,58 @@ export default class GraphManager {
     this.startDrawing();
   }
 
-  // /**
-  //  * Highlights the selected sensors by drawing their lines with emphasis
-  //  * @param {Array} sensorIds - Array of sensor IDs to highlight
-  //  */
-  // highlightSensors(sensorIds) {
-  //   const buffers = getSensorBuffers();
-  //   const range = this.calculateSlidingWindowXRange();
-  //   if (!range) return;
-  //   const { xMin, xMax } = range;
+  /**
+   * Draws the highlights (sensor lines and event line) on top of the current frame.
+   */
+  drawHighlights() {
+    if (!this.gr) return;
+    const buffers = getSensorBuffers();
+    const range = this.calculateSlidingWindowXRange();
+    if (!range) return;
+    const { xMin, xMax } = range;
 
-  //   // Draw highlighted sensors on top
-  //   sensorIds.forEach((sensorId) => {
-  //     const buffer = buffers[sensorId];
-  //     if (!buffer || !buffer.x.length) return;
+    this.gr.setcolormap(3);
 
-  //     let plotX = [...buffer.x];
-  //     let plotY = [...buffer.y];
+    // Highlight sensor lines
+    this.highlightedSensors.forEach((sensorId) => {
+      const buffer = buffers[sensorId];
+      if (!buffer || !buffer.x.length) return;
 
-  //     // Pad boundaries
-  //     if (plotX[0] > xMin) {
-  //       plotX.unshift(xMin);
-  //       plotY.unshift(plotY[0]);
-  //     }
-  //     if (plotX[plotX.length - 1] < xMax) {
-  //       plotX.push(xMax);
-  //       plotY.push(plotY[plotY.length - 1]);
-  //     }
+      let plotX = [...buffer.x];
+      let plotY = [...buffer.y];
+      if (plotX[0] > xMin) {
+        plotX.unshift(xMin);
+        plotY.unshift(plotY[0]);
+      }
+      if (plotX[plotX.length - 1] < xMax) {
+        plotX.push(xMax);
+        plotY.push(plotY[plotY.length - 1]);
+      }
 
-  //     // Draw highlighted line
-  //     this.gr.setlinecolorind(7); // Yellow highlight
-  //     this.gr.setlinewidth(3); // Thicker line
-  //     this.gr.polyline(plotX.length, plotX, plotY);
-  //   });
+      this.gr.setlinecolorind(6);
+      this.gr.setlinewidth(3);
+      this.gr.polyline(plotX.length, plotX, plotY);
+    });
 
-  //   this.gr.setlinewidth(1); // Reset line width
-  //   this.gr.setlinecolorind(1); // Reset line color
-  // }
+    // Highlight event line
+    if (this.highlightedEvent) {
+      this.gr.setlinecolorind(9);
+      this.gr.setlinetype(1);
+      this.gr.setlinewidth(3);
+      const xCoords = [this.highlightedEvent.x, this.highlightedEvent.x];
+      const yCoords = [0, 1];
+      this.gr.polyline(2, xCoords, yCoords);
+    }
+
+    // Reset drawing style
+    this.gr.setcolormap(3);
+    this.gr.setlinewidth(1);
+    this.gr.setlinecolorind(1);
+    this.gr.setlinetype(1);
+  }
 
   /**
-   * Draws a single frame of the graph, including axes, grid, and sensor data.
+   * Modified drawFrame to call drawHighlights after drawing sensors, events, and legend.
    */
   drawFrame() {
     if (!this.isDrawing) return;
@@ -179,15 +194,17 @@ export default class GraphManager {
     );
 
     const groupColorMap = this.plotSensorData();
-
     this.plotEventLines();
-
     updateLegend(groupColorMap, this.groupSensorMap);
+
+    // Draw highlights on top.
+    this.drawHighlights();
 
     if (!this.isPaused) {
       requestAnimationFrame(() => this.drawFrame());
     }
   }
+
   /**
    * Calculates the global X-axis range across all sensor buffers.
    * @returns {{xMin: number, xMax: number}} - The newWindow object with xMin and xMax values.
@@ -307,12 +324,12 @@ export default class GraphManager {
       if (event.isImportant) {
         this.gr.setlinecolorind(2);
         this.gr.setlinetype(1);
-        this.gr.setlinewidth(2);
+        // this.gr.setlinewidth(2);
       }
       else {
         this.gr.setlinecolorind(1);
         this.gr.setlinetype(3);
-        this.gr.setlinewidth(1);	
+        // this.gr.setlinewidth(1);	
       }
 
       const xCoords = [event.x, event.x];
