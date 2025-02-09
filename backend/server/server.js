@@ -117,7 +117,7 @@ app.get('/stream-sliding-window', async (req, res) => {
     }
 });
 
-app.post("/api/annotations", async (req, res) => {
+app.put("/api/annotations", async (req, res) => {
   try {
     const db = await initializeDatabase();
     const { event_id, timestamp_id, timestamp, is_important } = req.body;

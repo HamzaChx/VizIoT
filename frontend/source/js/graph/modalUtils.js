@@ -152,7 +152,7 @@ function initializeTabs(modal) {
       
       try {
         const response = await fetch("/api/annotations", {
-          method: "POST",
+          method: "PUT",
           headers: {
             "Content-Type": "application/json",
           },
