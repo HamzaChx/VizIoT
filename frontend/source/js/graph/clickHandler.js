@@ -23,6 +23,8 @@ export function handleCanvasClick(event, graphManager) {
   graphManager.highlightedEvent = eventInfo;
   graphManager.highlightedSensors = sensors.map((s) => s.sensorId);
 
+  graphManager.requestRedraw();
+
   if (eventInfo || sensors.length > 0) {
     showCombinedModal(eventInfo, sensors);
   }

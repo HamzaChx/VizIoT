@@ -19,6 +19,7 @@ export default class GraphManager {
     this.previousWindow = undefined;
     this.highlightedSensors = [];
     this.highlightedEvent = null;
+    this.forceRedraw = false;
   }
 
   /**
@@ -68,6 +69,7 @@ export default class GraphManager {
     this.isDrawing = true;
     this.isPaused = false;
     this.drawFrame();
+
   }
 
   /**
@@ -76,6 +78,14 @@ export default class GraphManager {
   pauseDrawing() {
     if (this.isDrawing) {
       this.isPaused = true;
+    }
+    this.drawFrame();
+  }
+
+  requestRedraw() {
+    if (this.isPaused) {
+      this.forceRedraw = true;
+      this.drawFrame();
     }
   }
 
@@ -157,6 +167,8 @@ export default class GraphManager {
   drawFrame() {
     if (!this.isDrawing) return;
 
+    if (this.isPaused && !this.forceRedraw) return;
+
     const range = this.calculateSlidingWindowXRange();
     if (!range) {
       requestAnimationFrame(() => this.drawFrame());
@@ -194,8 +206,9 @@ export default class GraphManager {
     this.plotEventLines();
     updateLegend(groupColorMap, this.groupSensorMap);
 
-    // Draw highlights on top.
     this.drawHighlights();
+
+    this.forceRedraw = false;
 
     if (!this.isPaused) {
       requestAnimationFrame(() => this.drawFrame());
