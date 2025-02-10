@@ -2,9 +2,10 @@ import express from "express";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
-import { startSlidingWindowStream } from "../server/utils.js";
+import { startSlidingWindowStream, formatDateWithOffset } from "../server/utils.js";
 import { initializeDatabase } from "../database/db.js";
 import { processAndStore } from "../database/dataStorage.js";
+import { fetchSlidingWindowData } from "../database/dataFetching.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -63,6 +64,41 @@ app.post('/update-limit', (req, res) => {
 
     res.status(200).send("Limit updated");
 });
+
+app.get('/update-paused-data', async (req, res) => {
+  try {
+    const db = await initializeDatabase();
+    const limit = parseInt(req.query.limit, 10);
+    const timestamp = decodeURIComponent(req.query.timestamp);
+
+    if (!timestamp || isNaN(limit) || limit <= 0) {
+      return res.status(400).json({ error: 'Invalid parameters' });
+    }
+
+    const endTime = new Date(timestamp);
+    const startTime = new Date(endTime.getTime() - SLIDING_WINDOW_CONFIG.slidingWindowDuration);
+
+    const end = formatDateWithOffset(endTime);
+    const start = formatDateWithOffset(startTime);
+
+    const data = await fetchSlidingWindowData(
+      db, 
+      start,
+      end,
+      limit
+    );
+
+    res.json({
+      events: data.events || [],
+      sensorData: data.sensorData || [],
+      groupSensorMap: data.groupSensorMap || {}
+    });
+
+  } catch (error) {
+    console.error('Error updating paused data:', error);
+    res.status(500).json({ error: 'Error updating paused data' });
+  }
+});;
 
 app.post('/pause-stream', (req, res) => {
     const stream = Array.from(activeStreams.keys()).find((stream) => stream.req.ip === req.ip);

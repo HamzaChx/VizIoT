@@ -4,6 +4,7 @@ import {
   updateSensorBuffers,
   cleanupUnusedSensors,
 } from "./graph/buffer.js";
+import { updateSliderOnPause } from "./utils.js";
 
 let graphManager = null;
 let eventSource = null;
@@ -21,6 +22,10 @@ slider.addEventListener("input", (event) => {
 
   sensorLimit = newLimit;
   sensorCountLabel.textContent = newLimit;
+
+  if (isPaused && graphManager) {
+    updateSliderOnPause(graphManager, newLimit, lastTimestamp);
+  }
 
   fetch("/update-limit", {
     method: "POST",
