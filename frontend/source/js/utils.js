@@ -91,3 +91,34 @@ export function updateSliderOnPause(graphManager, newLimit, lastTimestamp) {
       console.error('Error updating paused data:', error);
     });
 }
+
+export function updateSensorCount(newLimit, isPaused, graphManager, lastTimestamp, sensorLimit) {
+
+  const sensorCountLabel = document.getElementById("sensor-count");
+
+  if (newLimit < 1) return;
+
+  sensorLimit = newLimit;
+  sensorCountLabel.textContent = newLimit;
+
+  if (isPaused && graphManager) {
+    updateSliderOnPause(graphManager, newLimit, lastTimestamp);
+    return;
+  }
+
+  fetch("/update-limit", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ limit: newLimit }),
+  })
+    .then((response) => {
+      if (!response.ok) {
+        console.error("Failed to update sensor limit:", response.statusText);
+      }
+    })
+    .catch((error) => {
+      console.error("Error updating sensor limit:", error);
+    });
+}

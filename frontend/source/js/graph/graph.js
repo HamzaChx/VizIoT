@@ -337,11 +337,9 @@ export default class GraphManager {
       if (event.isImportant) {
         this.gr.setlinecolorind(2);
         this.gr.setlinetype(1);
-        // this.gr.setlinewidth(2);
       } else {
         this.gr.setlinecolorind(1);
         this.gr.setlinetype(3);
-        // this.gr.setlinewidth(1);
       }
 
       const xCoords = [event.x, event.x];
@@ -349,7 +347,6 @@ export default class GraphManager {
       this.gr.polyline(2, xCoords, yCoords);
     });
 
-    this.gr.setlinewidth(1);
     this.gr.setlinetype(1);
     this.gr.setlinecolorind(1);
   }

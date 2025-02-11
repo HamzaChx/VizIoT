@@ -4,7 +4,7 @@ import {
   updateSensorBuffers,
   cleanupUnusedSensors,
 } from "./graph/buffer.js";
-import { updateSliderOnPause } from "./utils.js";
+import { updateSensorCount } from "./utils.js";
 
 let graphManager = null;
 let eventSource = null;
@@ -14,34 +14,10 @@ let lastTimestamp = null;
 
 let sensorLimit = 1;
 const slider = document.getElementById("sensor-slider");
-const sensorCountLabel = document.getElementById("sensor-count");
 
 slider.addEventListener("input", (event) => {
   const newLimit = parseInt(event.target.value);
-  if (newLimit < 1) return;
-
-  sensorLimit = newLimit;
-  sensorCountLabel.textContent = newLimit;
-
-  if (isPaused && graphManager) {
-    updateSliderOnPause(graphManager, newLimit, lastTimestamp);
-  }
-
-  fetch("/update-limit", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ limit: newLimit }),
-  })
-    .then((response) => {
-      if (!response.ok) {
-        console.error("Failed to update sensor limit:", response.statusText);
-      }
-    })
-    .catch((error) => {
-      console.error("Error updating sensor limit:", error);
-    });
+  updateSensorCount(newLimit, isPaused, graphManager, lastTimestamp, sensorLimit);
 });
 
 slider.addEventListener(
@@ -60,6 +36,18 @@ slider.addEventListener(
   },
   { passive: false }
 );
+
+document.getElementById("increase-sensor").addEventListener("click", () => {
+  const newValue = Math.min(parseInt(slider.value) + 1, slider.max);
+  slider.value = newValue;
+  updateSensorCount(newValue, isPaused, graphManager, lastTimestamp, sensorLimit);
+});
+
+document.getElementById("decrease-sensor").addEventListener("click", () => {
+  const newValue = Math.max(parseInt(slider.value) - 1, slider.min);
+  slider.value = newValue;
+  updateSensorCount(newValue, isPaused, graphManager, lastTimestamp, sensorLimit);
+});
 
 document.getElementById("pause-button").addEventListener("click", () => {
   if (!eventSource || isPaused) return;
