@@ -52,15 +52,3 @@
 .list-group {
   margin-bottom: 0;
 }
-
-.input-group .form-range {
-  min-width: 200px;
-}
-
-.input-group .btn svg {
-  margin: 0;
-}
-
-.input-group-text {
-  min-width: 80px;
-}
