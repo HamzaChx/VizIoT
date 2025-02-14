@@ -15,6 +15,19 @@ export function showMessage(message, type = "info") {
   }, 2000);
 }
 
+export function showNewEventsMessage(count) {
+  const messageElement = document.getElementById('new-events-message');
+  const messageText = messageElement.querySelector('small');
+  
+  messageText.textContent = `${count} new event${count !== 1 ? 's' : ''} added`;
+  messageElement.classList.remove('d-none');
+  
+  // Hide message after 5 seconds
+  setTimeout(() => {
+    messageElement.classList.add('d-none');
+  }, 5000);
+}
+
 /**
  * Utility function to format a date string with offset.
  * @param {Date} date - The date to format

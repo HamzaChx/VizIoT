@@ -52,3 +52,34 @@
 .list-group {
   margin-bottom: 0;
 }
+
+#new-events-message {
+  transition: opacity 0.3s ease-in-out;
+  min-width: 120px;
+  text-align: center;
+  margin-left: 1rem;
+}
+
+#new-events-message.d-none {
+  opacity: 0;
+}
+
+#heatmap {
+  position: relative;
+  height: 90%;
+}
+
+.heatmap-band {
+  width: 100%;
+  transition: opacity 0.2s ease;
+  cursor: pointer;
+}
+
+.heatmap-band:hover {
+  opacity: 0.8;
+}
+
+.tooltip {
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}

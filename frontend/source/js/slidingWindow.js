@@ -4,7 +4,7 @@ import {
   updateSensorBuffers,
   cleanupUnusedSensors,
 } from "./graph/buffer.js";
-import { updateSensorCount } from "./utils.js";
+import { updateSensorCount, showNewEventsMessage } from "./utils.js";
 
 let graphManager = null;
 let eventSource = null;
@@ -18,11 +18,21 @@ const slider = document.getElementById("sensor-slider");
 slider.addEventListener("input", (event) => {
   const newLimit = parseInt(event.target.value);
   updateSensorCount(newLimit, isPaused, graphManager, lastTimestamp, sensorLimit);
+  
+  if (graphManager) {
+    graphManager.captureSliderStepBaseline();
+    
+    setTimeout(() => {
+      const newCount = graphManager.newEventCount;
+      if (newCount > 0) {
+        showNewEventsMessage(newCount);
+      }
+    }, 100);
+  }
+
 });
 
-slider.addEventListener(
-  "wheel",
-  (event) => {
+slider.addEventListener("wheel", (event) => {
     event.preventDefault();
 
     const step = 1;
@@ -41,6 +51,15 @@ document.getElementById("increase-sensor").addEventListener("click", () => {
   const newValue = Math.min(parseInt(slider.value) + 1, slider.max);
   slider.value = newValue;
   updateSensorCount(newValue, isPaused, graphManager, lastTimestamp, sensorLimit);
+  if (graphManager) {
+    graphManager.captureSliderStepBaseline();
+    setTimeout(() => {
+      const newCount = graphManager.newEventCount;
+      if (newCount > 0) {
+        showNewEventsMessage(newCount);
+      }
+    }, 100);
+  }
 });
 
 document.getElementById("decrease-sensor").addEventListener("click", () => {
@@ -131,9 +150,10 @@ function startSlidingWindowStream(canvasId) {
 
   eventSource.onmessage = (event) => {
     try {
-      const { events, sensorData, groupSensorMap } = JSON.parse(event.data);
+      const { events, sensorData, groupSensorMap, groupIntervals } = JSON.parse(event.data);
 
       graphManager.groupSensorMap = groupSensorMap;
+      graphManager.groupIntervals = groupIntervals;
 
       if (!sensorData || sensorData.length === 0) return;
 
