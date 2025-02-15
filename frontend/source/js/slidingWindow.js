@@ -4,7 +4,7 @@ import {
   updateSensorBuffers,
   cleanupUnusedSensors,
 } from "./graph/buffer.js";
-import { updateSensorCount, showNewEventsMessage, showToast } from "./utils.js";
+import { updateSensorCount, showToast } from "./utils.js";
 
 let graphManager = null;
 let eventSource = null;
@@ -18,18 +18,6 @@ const slider = document.getElementById("sensor-slider");
 slider.addEventListener("input", (event) => {
   const newLimit = parseInt(event.target.value);
   updateSensorCount(newLimit, isPaused, graphManager, lastTimestamp, sensorLimit);
-  
-  if (graphManager) {
-    graphManager.captureSliderStepBaseline();
-    
-    // setTimeout(() => {
-    //   const newCount = graphManager.newEventCount;
-    //   if (newCount > 0) {
-    //     showNewEventsMessage(newCount);
-    //   }
-    // }, 100);
-  }
-
 });
 
 slider.addEventListener("wheel", (event) => {
@@ -51,15 +39,6 @@ document.getElementById("increase-sensor").addEventListener("click", () => {
   const newValue = Math.min(parseInt(slider.value) + 1, slider.max);
   slider.value = newValue;
   updateSensorCount(newValue, isPaused, graphManager, lastTimestamp, sensorLimit);
-  if (graphManager) {
-    graphManager.captureSliderStepBaseline();
-    // setTimeout(() => {
-    //   const newCount = graphManager.newEventCount;
-    //   if (newCount > 0) {
-    //     showNewEventsMessage(newCount);
-    //   }
-    // }, 100);
-  }
 });
 
 document.getElementById("decrease-sensor").addEventListener("click", () => {
@@ -95,18 +74,28 @@ document.getElementById("play-button").addEventListener("click", () => {
   }
 
   if (isPaused) {
-    fetch("/resume-stream", { method: "POST" })
-      .then((response) => {
-        if (response.ok) {
-          isPaused = false;
-          graphManager.startDrawing();
-        } else {
-          console.error("Failed to resume stream:", response.statusText);
-        }
-      })
-      .catch((error) => {
-        console.error("Error resuming stream:", error);
-      });
+    const currentLimit = parseInt(slider.value);
+    fetch("/update-limit", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ limit: currentLimit }),
+    })
+    .then(() => {
+      return fetch("/resume-stream", { method: "POST" });
+    })
+    .then((response) => {
+      if (response.ok) {
+        isPaused = false;
+        graphManager.startDrawing();
+      } else {
+        console.error("Failed to resume stream:", response.statusText);
+      }
+    })
+    .catch((error) => {
+      console.error("Error resuming stream:", error);
+    });
   }
 });
 

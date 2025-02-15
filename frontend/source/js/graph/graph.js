@@ -26,9 +26,6 @@ export default class GraphManager {
     this.highlightedSensors = [];
     this.highlightedEvent = null;
 
-    this.baselineTimestamps = {};
-    this.newEventCount = 0;
-
     // Window calculation cache
     this.previousWindow = { xMin: 0, xMax: 30 };
     this.lastUpdateTime = 0;
@@ -253,7 +250,7 @@ export default class GraphManager {
       return this.previousWindow;
     }
 
-    const windowDuration = 30; // seconds
+    const windowDuration = 30;
     const newWindow = { xMin: latestX - windowDuration, xMax: latestX };
 
     this.previousLatestX = latestX;
@@ -352,10 +349,7 @@ export default class GraphManager {
         const xCoords = [event.x, event.x];
         const yCoords = [0, 1];
         this.gr.polyline(2, xCoords, yCoords);
-      } else {
-        const baseline = this.baselineTimestamps[event.sensorId];
-        
-        if (baseline === undefined || event.x > baseline) {
+      } else if (event.isNew) {
           this.gr.setlinecolorind(1);
           this.gr.setlinetype(-6);
           const xCoords = [event.x, event.x];
@@ -366,36 +360,19 @@ export default class GraphManager {
             this.newEventCount++;
             event.newCounted = true;
           }
-        } else {
+        } 
+        else {
           this.gr.setlinecolorind(1);
           this.gr.setlinetype(3);
           const xCoords = [event.x, event.x];
           const yCoords = [0.05, 0.90];
           this.gr.polyline(2, xCoords, yCoords);
-        }
       }
     });
     
-    // Reset drawing settings
     this.gr.setlinetype(1);
     this.gr.setlinecolorind(1);
     
-  }
-  
-  captureSliderStepBaseline() {
-    const events = getEventBuffer();
-    this.baselineTimestamps = {};
-    events.forEach(event => {
-      const sensorId = event.sensorId;
-      if (!this.baselineTimestamps[sensorId] || event.x > this.baselineTimestamps[sensorId]) {
-        this.baselineTimestamps[sensorId] = event.x;
-      }
-    });
-    this.newEventCount = 0;
-
-    events.forEach(event => {
-      event.newCounted = false;
-    });
   }
 
   getEventBuffer() {
