@@ -94,6 +94,7 @@ app.get("/update-paused-data", async (req, res) => {
       events: data.events || [],
       sensorData: data.sensorData || [],
       groupSensorMap: data.groupSensorMap || {},
+      groupIntervals: data.groupIntervals || {},
     });
   } catch (error) {
     console.error("Error updating paused data:", error);

@@ -4,7 +4,7 @@ import {
   updateSensorBuffers,
   cleanupUnusedSensors,
 } from "./graph/buffer.js";
-import { updateSensorCount, showToast } from "./utils.js";
+import { updateSensorCount, showToast, formatDateWithOffset } from "./utils.js";
 
 let graphManager = null;
 let eventSource = null;
@@ -69,6 +69,7 @@ document.getElementById("pause-button").addEventListener("click", () => {
 
 document.getElementById("play-button").addEventListener("click", () => {
   if (!eventSource && !isPaused) {
+    sensorLimit = parseInt(slider.value);
     startSlidingWindowStream("example-canvas");
     return;
   }
@@ -89,9 +90,20 @@ document.getElementById("play-button").addEventListener("click", () => {
       if (response.ok) {
         isPaused = false;
         graphManager.startDrawing();
+        const timestamp = new Date(lastTimestamp);
+        const formattedTimestamp = formatDateWithOffset(timestamp);
+        return fetch(`/update-paused-data?limit=${currentLimit}&timestamp=${encodeURIComponent(formattedTimestamp)}`);
       } else {
         console.error("Failed to resume stream:", response.statusText);
       }
+    })
+    .then(response => response.json())
+    .then(({ groupSensorMap, groupIntervals }) => {
+      
+      graphManager.groupSensorMap = groupSensorMap;
+      graphManager.groupIntervals = groupIntervals;
+
+      graphManager.requestRedraw();
     })
     .catch((error) => {
       console.error("Error resuming stream:", error);
@@ -122,6 +134,8 @@ function startSlidingWindowStream(canvasId) {
   graphManager = new GraphManager(canvasId);
   graphManager.initialize();
   graphManager.startDrawing();
+
+  sensorLimit = parseInt(slider.value);
 
   eventSource = new EventSource(
     `/stream-sliding-window?start=${lastTimestamp || ""}&limit=${sensorLimit}`

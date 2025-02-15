@@ -91,11 +91,12 @@ export function updateSliderOnPause(graphManager, newLimit, lastTimestamp) {
       }
       return response.json();
     })
-    .then(({ events, sensorData, groupSensorMap }) => {
+    .then(({ events, sensorData, groupSensorMap, groupIntervals }) => {
       if (!sensorData || sensorData.length === 0) return;
 
       graphManager.groupSensorMap = groupSensorMap;
-      
+      graphManager.groupIntervals = groupIntervals;
+
       const activeSensorIds = sensorData.map(d => d.sensor_id);
       cleanupUnusedSensors(activeSensorIds);
 

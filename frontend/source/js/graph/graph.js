@@ -92,10 +92,8 @@ export default class GraphManager {
   }
 
   requestRedraw() {
-    if (this.isPaused) {
-      this.forceRedraw = true;
-      this.drawFrame();
-    }
+    this.forceRedraw = true;
+    this.drawFrame();
   }
 
   /**
