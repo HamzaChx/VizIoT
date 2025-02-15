@@ -4,7 +4,7 @@ import {
   updateSensorBuffers,
   cleanupUnusedSensors,
 } from "./graph/buffer.js";
-import { updateSensorCount, showNewEventsMessage } from "./utils.js";
+import { updateSensorCount, showNewEventsMessage, showToast } from "./utils.js";
 
 let graphManager = null;
 let eventSource = null;
@@ -22,12 +22,12 @@ slider.addEventListener("input", (event) => {
   if (graphManager) {
     graphManager.captureSliderStepBaseline();
     
-    setTimeout(() => {
-      const newCount = graphManager.newEventCount;
-      if (newCount > 0) {
-        showNewEventsMessage(newCount);
-      }
-    }, 100);
+    // setTimeout(() => {
+    //   const newCount = graphManager.newEventCount;
+    //   if (newCount > 0) {
+    //     showNewEventsMessage(newCount);
+    //   }
+    // }, 100);
   }
 
 });
@@ -53,12 +53,12 @@ document.getElementById("increase-sensor").addEventListener("click", () => {
   updateSensorCount(newValue, isPaused, graphManager, lastTimestamp, sensorLimit);
   if (graphManager) {
     graphManager.captureSliderStepBaseline();
-    setTimeout(() => {
-      const newCount = graphManager.newEventCount;
-      if (newCount > 0) {
-        showNewEventsMessage(newCount);
-      }
-    }, 100);
+    // setTimeout(() => {
+    //   const newCount = graphManager.newEventCount;
+    //   if (newCount > 0) {
+    //     showNewEventsMessage(newCount);
+    //   }
+    // }, 100);
   }
 });
 
@@ -77,18 +77,8 @@ document.getElementById("pause-button").addEventListener("click", () => {
         isPaused = true;
         graphManager.pauseDrawing();
 
-        const toast = document.getElementById("streamStatusToast");
-        const toastHeader = toast.getElementsByClassName("toast-header")[0];
+        showToast("dark", "Event Stream Paused", "The sliding window stream has been paused.");
 
-        toastHeader.classList.remove("bg-danger");
-        toastHeader.classList.add("bg-dark");
-
-        toast.getElementsByClassName("toast-body")[0].textContent = "The sliding window stream has been paused.";
-
-        const bsToast = new bootstrap.Toast(toast, {
-          delay: 1500,
-        });
-        bsToast.show();
       } else {
         console.error("Failed to pause stream:", response.statusText);
       }
@@ -205,11 +195,8 @@ function startSlidingWindowStream(canvasId) {
     eventSource = null;
     graphManager.reset();
 
-    const toast = document.getElementById("streamStatusToast");
-    toast.getElementsByClassName("toast-body")[0].textContent =
-      "The sliding window stream has been closed.";
-    const bsToast = new bootstrap.Toast(toast);
-    bsToast.show();
+    showToast("danger", "Event Stream Closed", "The sliding window stream has been closed.");
+
   });
 }
 
@@ -235,18 +222,8 @@ function stopSlidingWindowStream() {
   window.previousLatestX = undefined;
   window.previousWindow = undefined;
 
-  const toast = document.getElementById("streamStatusToast");
-  const toastHeader = toast.getElementsByClassName("toast-header")[0];
-  
-  toastHeader.classList.remove("bg-dark");
-  toastHeader.classList.add("bg-danger");
+  showToast("danger", "Event Stream Stopped", "The sliding window stream has been stopped.");
 
-  toast.getElementsByClassName("toast-body")[0].textContent =
-    "The sliding window stream has been stopped.";
-  const bsToast = new bootstrap.Toast(toast, {
-    delay: 2000,
-  });
-  bsToast.show();
 }
 
 export { startSlidingWindowStream, stopSlidingWindowStream };

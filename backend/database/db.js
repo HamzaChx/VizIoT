@@ -50,6 +50,15 @@ const CREATE_TABLE_QUERIES = {
       FOREIGN KEY (event_id) REFERENCES ProcessEvents(event_id)
     );
   `,
+  eventAnnotations: `
+    CREATE TABLE IF NOT EXISTS EventAnnotations (
+      annotation_id INTEGER PRIMARY KEY AUTOINCREMENT,
+      timestamp_id INTEGER,
+      annotation TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (timestamp_id) REFERENCES EventTimestamps(timestamp_id)
+    );
+  `,
 };
 
 export async function initializeDatabase() {

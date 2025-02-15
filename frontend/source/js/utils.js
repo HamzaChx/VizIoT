@@ -22,10 +22,22 @@ export function showNewEventsMessage(count) {
   messageText.textContent = `${count} new event${count !== 1 ? 's' : ''} added`;
   messageElement.classList.remove('d-none');
   
-  // Hide message after 5 seconds
   setTimeout(() => {
     messageElement.classList.add('d-none');
   }, 5000);
+}
+
+export function showToast(type, title, message) {
+  const toast = document.getElementById('streamStatusToast');
+  const toastHeader = toast.querySelector('.toast-header');
+  const toastBody = toast.querySelector('.toast-body');
+
+  toastHeader.className = `toast-header bg-${type} text-white`;
+  toastHeader.querySelector('.me-auto').textContent = title;
+  toastBody.textContent = message;
+
+  const bsToast = new bootstrap.Toast(toast, { delay: 2000 });
+  bsToast.show();
 }
 
 /**
@@ -55,6 +67,15 @@ export function formatDateWithOffset(date) {
     .getMilliseconds()
     .toString()
     .padStart(3, "0")}${sign}${absOffsetHours}:${absOffsetMinutes}`;
+}
+
+export function escapeHtml(unsafe) {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 export function updateSliderOnPause(graphManager, newLimit, lastTimestamp) {

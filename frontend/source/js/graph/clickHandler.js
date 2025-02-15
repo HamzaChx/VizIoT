@@ -1,39 +1,44 @@
-import { showCombinedModal } from "./modalUtils.js";
+import { showCombinedModal } from "../components/modal.js";
 
 /**
  * Handles canvas click events to display sensor information in a modal and highlight the clicked line.
  * @param {MouseEvent} event - The mouse event object.
  * @param {Object} graphManager - An instance of GraphManager.
  */
-export function handleCanvasClick(event, graphManager) {
+export async function handleCanvasClick(event, graphManager) {
   const rect = event.target.getBoundingClientRect();
   if (!rect) return;
 
-  // Calculate normalized coordinates (0-1 range)
   const rawX = event.clientX - rect.left;
   const rawY = event.clientY - rect.top;
   
-  // Convert to graph coordinates
   const graphX = rawX / rect.width;
-  const graphY = 1 - (rawY / rect.height); // Flip Y coordinate
+  const graphY = 1 - (rawY / rect.height);
 
-  // Get timestamp from X coordinate
   const timestamp = translateXToTimestamp(graphX, graphManager);
-  
-  // Get clicked elements
   const eventInfo = getEventAtTimestamp(timestamp, graphManager);
   const sensors = getSensorsInRegion(timestamp, graphManager, graphY);
 
-  // Update highlights
   graphManager.highlightedEvent = eventInfo;
   graphManager.highlightedSensors = sensors.map((s) => s.sensorId);
-  
-  // Force redraw
   graphManager.requestRedraw();
 
-  // Show modal if we have data
   if (eventInfo || sensors.length > 0) {
-    showCombinedModal(eventInfo, sensors);
+    if (eventInfo || sensors.length > 0) {
+    try {
+      if (eventInfo) {
+        const response = await fetch(`/api/annotations/${eventInfo.timestamp_id}`);
+        if (response.ok) {
+          const annotations = await response.json();
+          eventInfo.annotations = annotations;
+        }
+      }
+      showCombinedModal(eventInfo, sensors);
+    } catch (error) {
+      console.error('Error fetching annotations:', error);
+      showCombinedModal(eventInfo, sensors);
+    }
+  }
   }
 }
 
@@ -126,22 +131,14 @@ function getSensorsInRegion(timestamp, graphManager, graphY) {
 }
 
 function getEventAtTimestamp(timestamp, graphManager) {
-  // const events = graphManager.getEventBuffer();
-  // const xTolerance = 0.5;
 
-  // return events.find(event => 
-  //   Math.abs(event.x - timestamp) <= xTolerance
-  // );
-  
   const events = graphManager.getEventBuffer();
   const xTolerance = 0.5;
 
-  // Find events within tolerance
   const nearbyEvents = events.filter(event => 
     Math.abs(event.x - timestamp) <= xTolerance
   );
 
-  // Return the closest event
   if (nearbyEvents.length > 0) {
     return nearbyEvents.reduce((closest, current) => {
       const closestDist = Math.abs(closest.x - timestamp);
