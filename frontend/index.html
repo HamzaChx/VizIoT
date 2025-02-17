@@ -74,31 +74,67 @@
         <label for="sensor-slider">
           <span id="sensor-count">1</span>
         </label>
+        <div>
+          <button id="decrease-sensor" class="btn btn-danger btn-sm text-white" type="button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-dash"
+              viewBox="0 0 16 16">
+              <path d="M4 8a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7A.5.5 0 0 1 4 8z" />
+            </svg>
+          </button>
+          <button id="increase-sensor" class="btn btn-primary btn-sm text-white" type="button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus"
+              viewBox="0 0 16 16">
+              <path
+                d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
+            </svg>
+          </button>
+        </div>
+        <div class="d-flex align-items-center">
+          <div id="new-events-message" class="alert alert-info py-1 px-2 mb-0 d-none">
+            <small class="fw-bold"></small>
+          </div>
+        </div>
       </div>
 
-      <!-- Graph Section -->
       <div class="card shadow w-100" style="height: 75vh;">
         <div class="card-body row g-0 h-100">
           <!-- Legend Container -->
-          <div id="legend-container" class="col-2 border-end d-flex flex-column">
+          <div id="legend-container" class="col-2 border-end d-flex flex-column mx-2">
             <h5 class="mb-4 px-2"></h5>
             <div class="flex-grow-1 overflow-auto px-2">
               <ul id="legend-list" class="list-unstyled w-100 mb-0"></ul>
             </div>
           </div>
+          <div class="col-auto px-0">
+            <div class="d-flex align-items-center h-100 py-4">
+              <div id="heatmap" style="width: 20px;"></div>
+            </div>
+          </div>
           <!-- Graph Container -->
-          <div class="col-10 position-relative">
+          <div class="col position-relative">
             <canvas id="example-canvas" class="position-absolute top-0 start-0 w-100 h-100"></canvas>
           </div>
         </div>
+      </div>
 
-        <div id="dynamic-modal" class="modal" tabindex="-1">
-          <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-              <!-- Content will be dynamically inserted here -->
-            </div>
+      <div id="dynamic-modal" class="modal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <!-- Content will be dynamically inserted here -->
           </div>
+        </div>
+      </div>
 
+      <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="streamStatusToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+          <div class="toast-header bg-danger text-white">
+            <strong class="me-auto">Stream Status</strong>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+          </div>
+          <div class="toast-body">
+            Stream has been stopped
+          </div>
+        </div>
       </div>
 
   </main>

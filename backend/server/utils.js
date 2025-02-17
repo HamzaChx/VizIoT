@@ -43,7 +43,7 @@ export const startSlidingWindowStream = (
     if (streamData.isPaused) return;
 
     try {
-      const { events, sensorData, groupSensorMap, stopStream } =
+      const { events, sensorData, groupSensorMap, groupIntervals, stopStream } =
         await fetchSlidingWindowData(
           db,
           formatDateWithOffset(startTime),
@@ -59,7 +59,7 @@ export const startSlidingWindowStream = (
       }
 
       res.write(
-        `data: ${JSON.stringify({ events, sensorData, groupSensorMap })}\n\n`
+        `data: ${JSON.stringify({ events, sensorData, groupSensorMap, groupIntervals })}\n\n`
       );
 
       startTime = new Date(startTime.getTime() + config.windowIncrement);

@@ -1,5 +1,10 @@
 import GraphManager from "./graph/graph.js";
-import { updateEventBuffer, updateSensorBuffers, cleanupUnusedSensors } from "./graph/buffer.js";
+import {
+  updateEventBuffer,
+  updateSensorBuffers,
+  cleanupUnusedSensors,
+} from "./graph/buffer.js";
+import { updateSensorCount, showToast, formatDateWithOffset } from "./utils.js";
 
 let graphManager = null;
 let eventSource = null;
@@ -9,44 +14,38 @@ let lastTimestamp = null;
 
 let sensorLimit = 1;
 const slider = document.getElementById("sensor-slider");
-const sensorCountLabel = document.getElementById("sensor-count");
 
 slider.addEventListener("input", (event) => {
   const newLimit = parseInt(event.target.value);
-  if (newLimit < 1) return;
-  
-  sensorLimit = newLimit;
-  sensorCountLabel.textContent = newLimit;
-
-  fetch("/update-limit", {
-      method: "POST",
-      headers: {
-          "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ limit: newLimit }),
-  })
-  .then((response) => {
-      if (!response.ok) {
-          console.error("Failed to update sensor limit:", response.statusText);
-      }
-  })
-  .catch((error) => {
-      console.error("Error updating sensor limit:", error);
-  });
+  updateSensorCount(newLimit, isPaused, graphManager, lastTimestamp, sensorLimit);
 });
 
 slider.addEventListener("wheel", (event) => {
-  event.preventDefault();
-  
-  const step = 1;
-  const direction = event.deltaY > 0 ? -step : step;
-  const newValue = parseInt(slider.value) + direction;
+    event.preventDefault();
 
-  if (newValue >= slider.min && newValue <= slider.max) {
+    const step = 1;
+    const direction = event.deltaY > 0 ? -step : step;
+    const newValue = parseInt(slider.value) + direction;
+
+    if (newValue >= slider.min && newValue <= slider.max) {
       slider.value = newValue;
       slider.dispatchEvent(new Event("input"));
-  }
-}, { passive: false });
+    }
+  },
+  { passive: false }
+);
+
+document.getElementById("increase-sensor").addEventListener("click", () => {
+  const newValue = Math.min(parseInt(slider.value) + 1, slider.max);
+  slider.value = newValue;
+  updateSensorCount(newValue, isPaused, graphManager, lastTimestamp, sensorLimit);
+});
+
+document.getElementById("decrease-sensor").addEventListener("click", () => {
+  const newValue = Math.max(parseInt(slider.value) - 1, slider.min);
+  slider.value = newValue;
+  updateSensorCount(newValue, isPaused, graphManager, lastTimestamp, sensorLimit);
+});
 
 document.getElementById("pause-button").addEventListener("click", () => {
   if (!eventSource || isPaused) return;
@@ -56,6 +55,9 @@ document.getElementById("pause-button").addEventListener("click", () => {
       if (response.ok) {
         isPaused = true;
         graphManager.pauseDrawing();
+
+        showToast("dark", "Event Stream Paused", "The sliding window stream has been paused.");
+
       } else {
         console.error("Failed to pause stream:", response.statusText);
       }
@@ -67,23 +69,45 @@ document.getElementById("pause-button").addEventListener("click", () => {
 
 document.getElementById("play-button").addEventListener("click", () => {
   if (!eventSource && !isPaused) {
+    sensorLimit = parseInt(slider.value);
     startSlidingWindowStream("example-canvas");
     return;
   }
 
   if (isPaused) {
-    fetch("/resume-stream", { method: "POST" })
-      .then((response) => {
-        if (response.ok) {
-          isPaused = false;
-          graphManager.startDrawing();
-        } else {
-          console.error("Failed to resume stream:", response.statusText);
-        }
-      })
-      .catch((error) => {
-        console.error("Error resuming stream:", error);
-      });
+    const currentLimit = parseInt(slider.value);
+    fetch("/update-limit", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ limit: currentLimit }),
+    })
+    .then(() => {
+      return fetch("/resume-stream", { method: "POST" });
+    })
+    .then((response) => {
+      if (response.ok) {
+        isPaused = false;
+        graphManager.startDrawing();
+        const timestamp = new Date(lastTimestamp);
+        const formattedTimestamp = formatDateWithOffset(timestamp);
+        return fetch(`/update-paused-data?limit=${currentLimit}&timestamp=${encodeURIComponent(formattedTimestamp)}`);
+      } else {
+        console.error("Failed to resume stream:", response.statusText);
+      }
+    })
+    .then(response => response.json())
+    .then(({ groupSensorMap, groupIntervals }) => {
+      
+      graphManager.groupSensorMap = groupSensorMap;
+      graphManager.groupIntervals = groupIntervals;
+
+      graphManager.requestRedraw();
+    })
+    .catch((error) => {
+      console.error("Error resuming stream:", error);
+    });
   }
 });
 
@@ -111,15 +135,18 @@ function startSlidingWindowStream(canvasId) {
   graphManager.initialize();
   graphManager.startDrawing();
 
+  sensorLimit = parseInt(slider.value);
+
   eventSource = new EventSource(
     `/stream-sliding-window?start=${lastTimestamp || ""}&limit=${sensorLimit}`
   );
 
   eventSource.onmessage = (event) => {
     try {
-      const { events, sensorData, groupSensorMap } = JSON.parse(event.data);
+      const { events, sensorData, groupSensorMap, groupIntervals } = JSON.parse(event.data);
 
       graphManager.groupSensorMap = groupSensorMap;
+      graphManager.groupIntervals = groupIntervals;
 
       if (!sensorData || sensorData.length === 0) return;
 
@@ -128,7 +155,7 @@ function startSlidingWindowStream(canvasId) {
         window.startTime = startTime;
       }
 
-      const activeSensorIds = sensorData.map(d => d.sensor_id);
+      const activeSensorIds = sensorData.map((d) => d.sensor_id);
       cleanupUnusedSensors(activeSensorIds);
 
       const transformedData = sensorData.map((entry) => {
@@ -146,13 +173,12 @@ function startSlidingWindowStream(canvasId) {
       });
 
       updateSensorBuffers(transformedData);
-      
+
       if (events && events.length > 0) {
         updateEventBuffer(events);
       }
 
       lastTimestamp = sensorData[sensorData.length - 1].timestamp;
-
     } catch (error) {
       console.error("Error processing sliding window data:", error);
     }
@@ -167,11 +193,14 @@ function startSlidingWindowStream(canvasId) {
     }, 5000);
   };
 
-  eventSource.addEventListener('close', () => {
+  eventSource.addEventListener("close", () => {
     eventSource.close();
     eventSource = null;
-  });
+    graphManager.reset();
 
+    showToast("danger", "Event Stream Closed", "The sliding window stream has been closed.");
+
+  });
 }
 
 /**
@@ -195,6 +224,8 @@ function stopSlidingWindowStream() {
 
   window.previousLatestX = undefined;
   window.previousWindow = undefined;
+
+  showToast("danger", "Event Stream Stopped", "The sliding window stream has been stopped.");
 
 }
 

@@ -8,12 +8,12 @@ export async function fetchEventTimestamps(db, rawData, start, end) {
       `
       SELECT 
         et.timestamp,
-        pe.sensor_id,
-        pe.name as event_name,
-        pe.ranking,
         et.is_important,
         et.timestamp_id,
-        et.event_id
+        et.event_id,
+        pe.sensor_id,
+        pe.name as event_name,
+        pe.ranking
       FROM EventTimestamps et
       JOIN ProcessEvents pe ON et.event_id = pe.event_id
       WHERE pe.sensor_id IN (${sensorIds.join(",")})
@@ -60,7 +60,7 @@ export async function fetchSlidingWindowData(db, start, end, limit = 1) {
     }
 
     const groupNames = [...new Set(rawData.map((entry) => entry.group_name))];
-    const verticalMargin = 0.025;
+    const verticalMargin = 0.1;
     const groupMargin = 0.05;
     const availableHeight = 1 - 2 * verticalMargin;
     const effectiveIntervalSize =
@@ -126,7 +126,7 @@ export async function fetchSlidingWindowData(db, start, end, limit = 1) {
       `Fetched ${sensorData.length} entries for ${groupNames.length} groups.`
     );
 
-    return { events, sensorData, groupSensorMap };
+    return { events, sensorData, groupSensorMap, groupIntervals };
   } catch (error) {
     console.error("Error fetching sliding window data:", error.message);
     throw error;

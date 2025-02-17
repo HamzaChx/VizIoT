@@ -9,16 +9,30 @@ import { handleCanvasClick } from "./clickHandler.js";
 
 export default class GraphManager {
   constructor(canvasId) {
+
     this.canvasId = canvasId;
     this.gr = null;
+    this.viewportSettings = {
+      start: 0.05,
+      end: 1
+    };
+
+    // State management
     this.isDrawing = false;
     this.isPaused = false;
-    this.groupSensorMap = {};
-    this.getSensorBuffers = getSensorBuffers;
-    this.previousLatestX = undefined;
-    this.previousWindow = undefined;
+    this.forceRedraw = false;
+
+    // Highlight tracking
     this.highlightedSensors = [];
     this.highlightedEvent = null;
+
+    // Window calculation cache
+    this.previousWindow = { xMin: 0, xMax: 30 };
+    this.lastUpdateTime = 0;
+    
+    // Group mapping
+    this.groupSensorMap = {};
+    this.groupIntervals = {};
   }
 
   /**
@@ -31,13 +45,10 @@ export default class GraphManager {
       this.gr.clearws();
       this.gr.setcolormap(3);
 
-      const viewportStart = 0.05;
-      const viewportEnd = 0.95;
+      const viewportStart = 0;
+      const viewportEnd = 1;
       this.gr.setviewport(
-        viewportStart,
-        viewportEnd,
-        viewportStart,
-        viewportEnd
+        0.01, 1, 0.05, 1
       );
 
       this.viewportSettings = {
@@ -77,6 +88,12 @@ export default class GraphManager {
     if (this.isDrawing) {
       this.isPaused = true;
     }
+    this.drawFrame();
+  }
+
+  requestRedraw() {
+    this.forceRedraw = true;
+    this.drawFrame();
   }
 
   /**
@@ -96,7 +113,7 @@ export default class GraphManager {
     clearSensorBuffers();
     clearEventBuffer();
     this.gr.clearws();
-    updateLegend({});
+    updateLegend({}, {}, {});
 
     this.gr.updatews();
   }
@@ -111,9 +128,6 @@ export default class GraphManager {
     if (!range) return;
     const { xMin, xMax } = range;
 
-    this.gr.setcolormap(3);
-
-    // Highlight sensor lines
     this.highlightedSensors.forEach((sensorId) => {
       const buffer = buffers[sensorId];
       if (!buffer || !buffer.x.length) return;
@@ -129,14 +143,13 @@ export default class GraphManager {
         plotY.push(plotY[plotY.length - 1]);
       }
 
-      this.gr.setlinecolorind(6);
+      this.gr.setlinecolorind(2);
       this.gr.setlinewidth(3);
       this.gr.polyline(plotX.length, plotX, plotY);
     });
 
-    // Highlight event line
     if (this.highlightedEvent) {
-      this.gr.setlinecolorind(6);
+      this.gr.setlinecolorind(2);
       this.gr.setlinetype(1);
       this.gr.setlinewidth(3);
       const xCoords = [this.highlightedEvent.x, this.highlightedEvent.x];
@@ -144,8 +157,6 @@ export default class GraphManager {
       this.gr.polyline(2, xCoords, yCoords);
     }
 
-    // Reset drawing style
-    this.gr.setcolormap(3);
     this.gr.setlinewidth(1);
     this.gr.setlinecolorind(1);
     this.gr.setlinetype(1);
@@ -156,6 +167,8 @@ export default class GraphManager {
    */
   drawFrame() {
     if (!this.isDrawing) return;
+
+    if (this.isPaused && !this.forceRedraw) return;
 
     const range = this.calculateSlidingWindowXRange();
     if (!range) {
@@ -192,10 +205,11 @@ export default class GraphManager {
 
     const groupColorMap = this.plotSensorData();
     this.plotEventLines();
-    updateLegend(groupColorMap, this.groupSensorMap);
+    updateLegend(groupColorMap, this.groupSensorMap, this.groupIntervals);
 
-    // Draw highlights on top.
     this.drawHighlights();
+
+    this.forceRedraw = false;
 
     if (!this.isPaused) {
       requestAnimationFrame(() => this.drawFrame());
@@ -226,7 +240,7 @@ export default class GraphManager {
       return this.previousWindow;
     }
 
-    const updateThreshold = 0.05; // for example, 50 ms
+    const updateThreshold = 0.05;
     if (
       this.previousLatestX !== undefined &&
       latestX - this.previousLatestX < updateThreshold
@@ -234,7 +248,7 @@ export default class GraphManager {
       return this.previousWindow;
     }
 
-    const windowDuration = 30; // seconds
+    const windowDuration = 30;
     const newWindow = { xMin: latestX - windowDuration, xMax: latestX };
 
     this.previousLatestX = latestX;
@@ -280,7 +294,9 @@ export default class GraphManager {
       if (x.length > 0 && y.length > 0) {
         if (!(group in groupColorMap)) {
           groupColorMap[group] = nextColorIndex--;
+          if (nextColorIndex === 2) nextColorIndex = 7;
           if (nextColorIndex < 1) nextColorIndex = 8;
+        
         }
 
         if (!computedGroupSensorMap[group]) {
@@ -312,36 +328,53 @@ export default class GraphManager {
     return groupColorMap;
   }
 
+  getSensorBuffers() {
+    return getSensorBuffers();
+  }
+
   plotEventLines() {
     const events = getEventBuffer();
     if (!events.length) return;
-
+    
     const { xMin, xMax } = this.calculateSlidingWindowXRange();
-
+    
     events.forEach((event) => {
       if (event.x < xMin || event.x > xMax) return;
-
+  
       if (event.isImportant) {
         this.gr.setlinecolorind(2);
         this.gr.setlinetype(1);
-        // this.gr.setlinewidth(2);
-      } else {
-        this.gr.setlinecolorind(1);
-        this.gr.setlinetype(3);
-        // this.gr.setlinewidth(1);
+        const xCoords = [event.x, event.x];
+        const yCoords = [0, 1];
+        this.gr.polyline(2, xCoords, yCoords);
+      } else if (event.isNew) {
+          this.gr.setlinecolorind(1);
+          this.gr.setlinetype(-6);
+          const xCoords = [event.x, event.x];
+          const yCoords = [0.1, 0.95];
+          this.gr.polyline(2, xCoords, yCoords);
+          
+          if (!event.newCounted) {
+            this.newEventCount++;
+            event.newCounted = true;
+          }
+        } 
+        else {
+          this.gr.setlinecolorind(1);
+          this.gr.setlinetype(3);
+          const xCoords = [event.x, event.x];
+          const yCoords = [0.05, 0.90];
+          this.gr.polyline(2, xCoords, yCoords);
       }
-
-      const xCoords = [event.x, event.x];
-      const yCoords = [0, 1];
-      this.gr.polyline(2, xCoords, yCoords);
     });
-
-    this.gr.setlinewidth(1);
+    
     this.gr.setlinetype(1);
     this.gr.setlinecolorind(1);
+    
   }
 
   getEventBuffer() {
     return getEventBuffer();
   }
+
 }
