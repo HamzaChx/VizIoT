@@ -83,3 +83,12 @@
   pointer-events: none;
   transition: opacity 0.2s ease;
 }
+
+#new-events-message {
+  z-index: 1050;
+  transition: opacity 0.5s ease-in-out;
+}
+
+#new-events-message.fade-out {
+  opacity: 0;
+}

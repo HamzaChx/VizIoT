@@ -1,5 +1,6 @@
 let sensorBuffers = {};
 let eventBuffer = [];
+const eventCache = new WeakMap();
 
 /**
  * Updates the buffers with incoming graph data.
@@ -9,7 +10,16 @@ export function updateSensorBuffers(newGraphData) {
   const maxBufferSize = 300;
 
   newGraphData.forEach(
-    ({ sensorId, sensorName, originalValue, x, y, group, group_min, group_max }) => {
+    ({
+      sensorId,
+      sensorName,
+      originalValue,
+      x,
+      y,
+      group,
+      group_min,
+      group_max,
+    }) => {
       if (!sensorBuffers[sensorId]) {
         sensorBuffers[sensorId] = {
           x: [],
@@ -19,8 +29,8 @@ export function updateSensorBuffers(newGraphData) {
           group,
           groupBounds: {
             group_min,
-            group_max
-          }
+            group_max,
+          },
         };
       }
 
@@ -56,10 +66,9 @@ export function clearSensorBuffers() {
   });
 }
 
-
 /**
  * Cleans up unused sensors from the buffer.
- *  
+ *
  * @param {Array} activeSensorIds - Array of active sensor IDs.
  */
 export function cleanupUnusedSensors(activeSensorIds) {
@@ -71,22 +80,48 @@ export function cleanupUnusedSensors(activeSensorIds) {
   });
 }
 
+let eventCount = 0;
+
 /**
  * Updates the event buffer with incoming events.
  * @param {Array} events - Array of new events.
  */
-export function updateEventBuffer(events) {
+export function updateEventBuffer(events, count) {
   if (!events || !window.startTime) return;
 
-  eventBuffer = events.map((event) => ({
-    x: (Date.parse(event.timestamp) - window.startTime) / 1000,
-    name: event.event_name,
-    ranking: event.ranking,
-    sensorId: event.sensor_id,
-    isImportant: event.is_important,
-    event_id: event.event_id,
-    timestamp_id: event.timestamp_id,
-  }));
+  if (events.length === eventBuffer.length) {
+    let needsUpdate = false;
+    for (let i = 0; i < events.length; i++) {
+      if (events[i].event_id !== eventBuffer[i].event_id) {
+        needsUpdate = true;
+        break;
+      }
+    }
+    if (!needsUpdate) return;
+  }
+  eventBuffer = events.map((event) => {
+    let processed = eventCache.get(event);
+    if (!processed) {
+      processed = {
+        x: (Date.parse(event.timestamp) - window.startTime) / 1000,
+        name: event.event_name,
+        ranking: event.ranking,
+        sensorId: event.sensor_id,
+        isImportant: event.is_important,
+        event_id: event.event_id,
+        timestamp_id: event.timestamp_id,
+        isNew: event.is_new,
+      };
+      eventCache.set(event, processed);
+    }
+    return processed;
+  });
+
+  eventCount = count;
+}
+
+export function getEventCount() {
+  return eventCount;
 }
 
 /**

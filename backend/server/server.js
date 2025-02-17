@@ -91,7 +91,7 @@ app.get("/update-paused-data", async (req, res) => {
     const data = await fetchSlidingWindowData(db, start, end, limit);
 
     res.json({
-      events: data.events || [],
+      eventData: data.eventData || [],
       sensorData: data.sensorData || [],
       groupSensorMap: data.groupSensorMap || {},
       groupIntervals: data.groupIntervals || {},

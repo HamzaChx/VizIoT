@@ -9,12 +9,11 @@ import { handleCanvasClick } from "./clickHandler.js";
 
 export default class GraphManager {
   constructor(canvasId) {
-
     this.canvasId = canvasId;
     this.gr = null;
     this.viewportSettings = {
       start: 0.05,
-      end: 1
+      end: 1,
     };
 
     // State management
@@ -29,10 +28,13 @@ export default class GraphManager {
     // Window calculation cache
     this.previousWindow = { xMin: 0, xMax: 30 };
     this.lastUpdateTime = 0;
-    
+
     // Group mapping
     this.groupSensorMap = {};
     this.groupIntervals = {};
+
+    this.graphY = null;
+
   }
 
   /**
@@ -47,9 +49,7 @@ export default class GraphManager {
 
       const viewportStart = 0;
       const viewportEnd = 1;
-      this.gr.setviewport(
-        0.01, 1, 0.05, 1
-      );
+      this.gr.setviewport(0.01, 1, 0.05, 1);
 
       this.viewportSettings = {
         start: viewportStart,
@@ -296,7 +296,6 @@ export default class GraphManager {
           groupColorMap[group] = nextColorIndex--;
           if (nextColorIndex === 2) nextColorIndex = 7;
           if (nextColorIndex < 1) nextColorIndex = 8;
-        
         }
 
         if (!computedGroupSensorMap[group]) {
@@ -338,43 +337,41 @@ export default class GraphManager {
     
     const { xMin, xMax } = this.calculateSlidingWindowXRange();
     
-    events.forEach((event) => {
+    // Group events by type for batch rendering
+    const importantEvents = [];
+    const newEvents = [];
+    const regularEvents = [];
+    
+    events.forEach(event => {
       if (event.x < xMin || event.x > xMax) return;
-  
-      if (event.isImportant) {
-        this.gr.setlinecolorind(2);
-        this.gr.setlinetype(1);
-        const xCoords = [event.x, event.x];
-        const yCoords = [0, 1];
-        this.gr.polyline(2, xCoords, yCoords);
-      } else if (event.isNew) {
-          this.gr.setlinecolorind(1);
-          this.gr.setlinetype(-6);
-          const xCoords = [event.x, event.x];
-          const yCoords = [0.1, 0.95];
-          this.gr.polyline(2, xCoords, yCoords);
-          
-          if (!event.newCounted) {
-            this.newEventCount++;
-            event.newCounted = true;
-          }
-        } 
-        else {
-          this.gr.setlinecolorind(1);
-          this.gr.setlinetype(3);
-          const xCoords = [event.x, event.x];
-          const yCoords = [0.05, 0.90];
-          this.gr.polyline(2, xCoords, yCoords);
-      }
+      if (event.isImportant) importantEvents.push(event);
+      else if (event.isNew) newEvents.push(event);
+      else regularEvents.push(event);
     });
-    
-    this.gr.setlinetype(1);
+
+    this.batchRenderEvents(importantEvents, 2, 1, [0, 1]);
+    this.batchRenderEvents(newEvents, 1, -6, [0.1, 0.95]);
+    this.batchRenderEvents(regularEvents, 1, 3, [0.05, 0.90]);
+
     this.gr.setlinecolorind(1);
+    this.gr.setlinetype(1);
+
+  }
+  
+  batchRenderEvents(events, colorInd, lineType, [yStart, yEnd]) {
+    if (!events.length) return;
     
+    this.gr.setlinecolorind(colorInd);
+    this.gr.setlinetype(lineType);
+    
+    events.forEach(event => {
+      const xCoords = [event.x, event.x];
+      const yCoords = [yStart, yEnd];
+      this.gr.polyline(2, xCoords, yCoords);
+    });
   }
 
   getEventBuffer() {
     return getEventBuffer();
   }
-
 }

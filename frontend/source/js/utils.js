@@ -23,8 +23,12 @@ export function showNewEventsMessage(count) {
   messageElement.classList.remove('d-none');
   
   setTimeout(() => {
-    messageElement.classList.add('d-none');
-  }, 5000);
+    messageElement.classList.add('fade-out');
+    setTimeout(() => {
+      messageElement.classList.add('d-none');
+      messageElement.classList.remove('fade-out');
+    }, 500);
+  }, 1500);
 }
 
 export function showToast(type, title, message) {
@@ -91,7 +95,7 @@ export function updateSliderOnPause(graphManager, newLimit, lastTimestamp) {
       }
       return response.json();
     })
-    .then(({ events, sensorData, groupSensorMap, groupIntervals }) => {
+    .then(({ eventData, sensorData, groupSensorMap, groupIntervals }) => {
       if (!sensorData || sensorData.length === 0) return;
 
       graphManager.groupSensorMap = groupSensorMap;
@@ -116,8 +120,10 @@ export function updateSliderOnPause(graphManager, newLimit, lastTimestamp) {
 
       updateSensorBuffers(transformedData);
       
+      const events = eventData.events;
+      const count = eventData.newCount;
       if (events && events.length > 0) {
-        updateEventBuffer(events);
+        updateEventBuffer(events, count);
       }
 
       graphManager.requestRedraw();
