@@ -1,20 +1,5 @@
 import { cleanupUnusedSensors, updateEventBuffer, updateSensorBuffers } from "./graph/buffer.js";
 
-export function showMessage(message, type = "info") {
-  const alertBox = document.getElementById("alert-box");
-  alertBox.textContent = message;
-  alertBox.className = `alert alert-${type}`;
-  alertBox.classList.remove("d-none");
-  alertBox.style.opacity = "1";
-
-  setTimeout(() => {
-    alertBox.style.opacity = "0";
-    setTimeout(() => {
-      alertBox.classList.add("d-none");
-    }, 500);
-  }, 2000);
-}
-
 export function showNewEventsMessage(count) {
   const messageElement = document.getElementById('new-events-message');
   const messageText = messageElement.querySelector('small');
@@ -44,11 +29,6 @@ export function showToast(type, title, message) {
   bsToast.show();
 }
 
-/**
- * Utility function to format a date string with offset.
- * @param {Date} date - The date to format
- * @returns {string} Formatted date string with timezone offset
- */
 export function formatDateWithOffset(date) {
   const offset = -date.getTimezoneOffset();
   const absOffsetHours = Math.abs(Math.floor(offset / 60))
