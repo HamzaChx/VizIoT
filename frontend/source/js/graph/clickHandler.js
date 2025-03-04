@@ -157,7 +157,6 @@ function getEventAtTimestamp(timestamp, graphManager) {
     const event = events[i];
     const distance = Math.abs(event.x - timestamp);
 
-    // Early exit if too far
     if (distance > xTolerance) continue;
 
     // Check height range only if within x tolerance
@@ -177,23 +176,3 @@ function getEventAtTimestamp(timestamp, graphManager) {
 
   return closestEvent;
 }
-
-// function getEventAtTimestamp(timestamp, graphManager) {
-
-//   const events = graphManager.getEventBuffer();
-//   const xTolerance = 0.5;
-
-//   const nearbyEvents = events.filter(event =>
-//     Math.abs(event.x - timestamp) <= xTolerance
-//   );
-
-//   if (nearbyEvents.length > 0) {
-//     return nearbyEvents.reduce((closest, current) => {
-//       const closestDist = Math.abs(closest.x - timestamp);
-//       const currentDist = Math.abs(current.x - timestamp);
-//       return currentDist < closestDist ? current : closest;
-//     });
-//   }
-
-//   return null;
-// }

@@ -3,14 +3,6 @@ export async function fetchEventTimestamps(db, rawData, start, end, currentStep)
     const sensorIds = [...new Set(rawData.map((entry) => entry.sensor_id))];
     if (sensorIds.length === 0) return [];
 
-    // const newEventsCount = await db.get(`
-    //   SELECT COUNT(*) as count
-    //   FROM EventTimestamps et
-    //   JOIN ProcessEvents pe ON et.event_id = pe.event_id
-    //   WHERE pe.event_id = ?
-    //   AND et.timestamp BETWEEN ? AND ?
-    // `, [currentStep, start, end]);
-
     const events = await db.all(
       `
       SELECT

@@ -8,7 +8,6 @@ import { updateLegend } from "./legend.js";
 import { handleCanvasClick } from "./clickHandler.js";
 
 import GraphRenderer from "./components/graphRenderer.js";
-import ViewportManager from "./components/viewportManager.js";
 import HighlightManager from "./components/highlightManager.js";
 import SensorPlotter from "./components/sensorPlotter.js";
 import EventPlotter from "./components/eventPlotter.js";
@@ -19,7 +18,6 @@ export default class GraphManager {
     
     // Component initialization
     this.renderer = new GraphRenderer(canvasId);
-    this.viewportManager = new ViewportManager();
     this.highlightManager = new HighlightManager();
     this.sensorPlotter = new SensorPlotter();
     this.eventPlotter = new EventPlotter();
@@ -43,7 +41,7 @@ export default class GraphManager {
    */
   initialize(autoStart = false) {
     this.renderer.initialize().then(() => {
-      this.viewportManager.setViewport(this.renderer);
+      this.renderer.setViewport(this.renderer);
       
       const canvasElement = document.getElementById(this.canvasId);
       if (canvasElement) {
@@ -111,7 +109,7 @@ export default class GraphManager {
     if (this.isPaused && !this.forceRedraw) return;
 
     const buffers = getSensorBuffers();
-    const range = this.viewportManager.calculateVisibleWindow(buffers);
+    const range = this.renderer.calculateVisibleWindow(buffers);
     
     if (!range) {
       requestAnimationFrame(() => this.drawFrame());
@@ -167,14 +165,14 @@ export default class GraphManager {
    */
   calculateSlidingWindowXRange() {
     const buffers = getSensorBuffers();
-    return this.viewportManager.calculateVisibleWindow(buffers);
+    return this.renderer.calculateVisibleWindow(buffers);
   }
 
   /**
    * Gets the canvas bounding rectangle
    */
   getBoundingClientRect() {
-    return this.viewportManager.getCanvasRect(this.canvasId);
+    return this.renderer.getCanvasRect(this.canvasId);
   }
 
   /**

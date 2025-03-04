@@ -18,11 +18,6 @@ const slider = document.getElementById("sensor-slider");
 
 slider.addEventListener("input", (event) => {
   const newLimit = parseInt(event.target.value);
-  // const eventCount = getEventCount();
-  // if (eventCount !== 0) {
-  //   const message = `${eventCount} new event${eventCount > 1 ? "s" : ""} available.`;
-  //   showToast("info", "New Events Available", message);
-  // }
   updateSensorCount(newLimit, isPaused, graphManager, lastTimestamp, sensorLimit);
 });
 
@@ -44,11 +39,6 @@ slider.addEventListener("wheel", (event) => {
 document.getElementById("increase-sensor").addEventListener("click", () => {
   const newValue = Math.min(parseInt(slider.value) + 1, slider.max);
   slider.value = newValue;
-  // const eventCount = getEventCount();
-  // if (eventCount !== 0) {
-  //   const message = `${eventCount} new event${eventCount > 1 ? "s" : ""} available.`;
-  //   showToast("info", "New Events Available", message);
-  // }
   updateSensorCount(newValue, isPaused, graphManager, lastTimestamp, sensorLimit);
 });
 
