@@ -2,15 +2,17 @@ import GraphManager from "./graph/graph.js";
 import {
   updateEventBuffer,
   updateSensorBuffers,
-  cleanupUnusedSensors,
+  cleanupUnusedSensors
 } from "./graph/buffer.js";
-import { updateSensorCount, showToast, formatDateWithOffset } from "./utils.js";
+import { updateSensorCount, showToast } from "./utils.js";
+import { formatDateWithOffset } from "../../../utils/utilities.js";
 
 let graphManager = null;
 let eventSource = null;
 let startTime = null;
 let isPaused = false;
 let lastTimestamp = null;
+let retryCount = 0;
 
 let sensorLimit = 1;
 const slider = document.getElementById("sensor-slider");
@@ -143,18 +145,18 @@ function startSlidingWindowStream(canvasId) {
 
   eventSource.onmessage = (event) => {
     try {
-      const { events, sensorData, groupSensorMap, groupIntervals } = JSON.parse(event.data);
-
+      const { eventData, sensorData, groupSensorMap, groupIntervals } = JSON.parse(event.data);
+  
       graphManager.groupSensorMap = groupSensorMap;
       graphManager.groupIntervals = groupIntervals;
-
+  
       if (!sensorData || sensorData.length === 0) return;
-
+  
       if (!startTime && sensorData.length > 0) {
         startTime = Date.parse(sensorData[0].timestamp);
         window.startTime = startTime;
       }
-
+  
       const activeSensorIds = sensorData.map((d) => d.sensor_id);
       cleanupUnusedSensors(activeSensorIds);
 
@@ -174,10 +176,12 @@ function startSlidingWindowStream(canvasId) {
 
       updateSensorBuffers(transformedData);
 
+      const events = eventData.events;
+      const count = eventData.newCount;
       if (events && events.length > 0) {
-        updateEventBuffer(events);
+        updateEventBuffer(events, count);
       }
-
+  
       lastTimestamp = sensorData[sensorData.length - 1].timestamp;
     } catch (error) {
       console.error("Error processing sliding window data:", error);
@@ -187,10 +191,13 @@ function startSlidingWindowStream(canvasId) {
   eventSource.onerror = () => {
     console.error("Sliding window stream encountered an error.");
     stopSlidingWindowStream();
-    setTimeout(() => {
-      console.log("Retrying connection to sliding window stream...");
-      startSlidingWindowStream(canvasId);
-    }, 5000);
+    if (retryCount < 2) {
+      retryCount++;
+      setTimeout(() => {
+        console.log("Retrying connection to sliding window stream...");
+        startSlidingWindowStream(canvasId);
+      }, 1000);
+    }
   };
 
   eventSource.addEventListener("close", () => {
@@ -198,7 +205,7 @@ function startSlidingWindowStream(canvasId) {
     eventSource = null;
     graphManager.reset();
 
-    showToast("danger", "Event Stream Closed", "The sliding window stream has been closed.");
+    showToast("dark", "Event Stream Closed", "The sliding window stream has been closed.");
 
   });
 }

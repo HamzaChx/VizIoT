@@ -4,8 +4,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 import {
   startSlidingWindowStream,
-  formatDateWithOffset,
 } from "../server/utils.js";
+import { formatDateWithOffset } from "../../utils/utilities.js";
 import { initializeDatabase } from "../database/db.js";
 import { processAndStore } from "../database/dataStorage.js";
 import { fetchSlidingWindowData } from "../database/dataFetching.js";
@@ -91,7 +91,7 @@ app.get("/update-paused-data", async (req, res) => {
     const data = await fetchSlidingWindowData(db, start, end, limit);
 
     res.json({
-      events: data.events || [],
+      eventData: data.eventData || [],
       sensorData: data.sensorData || [],
       groupSensorMap: data.groupSensorMap || {},
       groupIntervals: data.groupIntervals || {},
@@ -269,3 +269,12 @@ app.get("/", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
+
+app.use('/utils', express.static(path.join(__dirname, '../../utils'), {
+  setHeaders: (res, path) => {
+    if (path.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript');
+    }
+  }
+}));
+

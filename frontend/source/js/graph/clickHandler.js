@@ -11,9 +11,11 @@ export async function handleCanvasClick(event, graphManager) {
 
   const rawX = event.clientX - rect.left;
   const rawY = event.clientY - rect.top;
-  
+
   const graphX = rawX / rect.width;
-  const graphY = 1 - (rawY / rect.height);
+  const graphY = 1 - rawY / rect.height;
+
+  graphManager.lastClickY = graphY;
 
   const timestamp = translateXToTimestamp(graphX, graphManager);
   const eventInfo = getEventAtTimestamp(timestamp, graphManager);
@@ -24,10 +26,15 @@ export async function handleCanvasClick(event, graphManager) {
   graphManager.requestRedraw();
 
   if (eventInfo || sensors.length > 0) {
-    if (eventInfo || sensors.length > 0) {
+    graphManager.highlightedEvent = eventInfo;
+    graphManager.highlightedSensors = sensors.map((s) => s.sensorId);
+    graphManager.requestRedraw();
+
     try {
       if (eventInfo) {
-        const response = await fetch(`/api/annotations/${eventInfo.timestamp_id}`);
+        const response = await fetch(
+          `/api/annotations/${eventInfo.timestamp_id}`
+        );
         if (response.ok) {
           const annotations = await response.json();
           eventInfo.annotations = annotations;
@@ -35,10 +42,9 @@ export async function handleCanvasClick(event, graphManager) {
       }
       showCombinedModal(eventInfo, sensors);
     } catch (error) {
-      console.error('Error fetching annotations:', error);
+      console.error("Error fetching annotations:", error);
       showCombinedModal(eventInfo, sensors);
     }
-  }
   }
 }
 
@@ -78,7 +84,7 @@ function getSensorsInRegion(timestamp, graphManager, graphY) {
     if (!data.x.length || !data.group || !data.groupBounds) return;
 
     const { group_min, group_max } = data.groupBounds;
-    
+
     // Check if click is within group bounds
     const normalizedY = (graphY - group_min) / (group_max - group_min);
     if (normalizedY < 0 || normalizedY > 1) return;
@@ -103,49 +109,70 @@ function getSensorsInRegion(timestamp, graphManager, graphY) {
         x: val,
         y: virtualY[idx],
         idx,
-        distance: Math.abs(virtualY[idx] - graphY)
+        distance: Math.abs(virtualY[idx] - graphY),
       }))
-      .filter(pt => 
-        Math.abs(pt.x - timestamp) <= xTolerance &&
-        Math.abs(pt.y - graphY) <= yTolerance
+      .filter(
+        (pt) =>
+          Math.abs(pt.x - timestamp) <= xTolerance &&
+          Math.abs(pt.y - graphY) <= yTolerance
       )
       .sort((a, b) => a.distance - b.distance);
 
     if (candidates.length > 0) {
       const candidate = candidates[0];
-      const value = candidate.idx < data.values.length ? data.values[candidate.idx] : "N/A";
+      const value =
+        candidate.idx < data.values.length ? data.values[candidate.idx] : "N/A";
 
       results.push({
         sensorId,
         sensorName: data.sensorName || "Unknown",
         value,
-        timestamp: new Date(timestamp * 1000 + window.startTime).toLocaleString(),
+        timestamp: new Date(
+          timestamp * 1000 + window.startTime
+        ).toLocaleString(),
         group: data.group,
-        distance: candidate.distance
+        distance: candidate.distance,
       });
     }
   });
 
   return results.sort((a, b) => a.distance - b.distance);
-
 }
 
-function getEventAtTimestamp(timestamp, graphManager) {
+const EVENT_HEIGHTS = {
+  important: { start: 0, end: 1 },
+  new: { start: 0.15, end: 0.95 },
+  regular: { start: 0.05, end: 0.9 },
+};
 
+function getEventAtTimestamp(timestamp, graphManager) {
   const events = graphManager.getEventBuffer();
   const xTolerance = 0.5;
+  const graphY = graphManager.lastClickY;
 
-  const nearbyEvents = events.filter(event => 
-    Math.abs(event.x - timestamp) <= xTolerance
-  );
+  let closestEvent = null;
+  let minDistance = xTolerance;
 
-  if (nearbyEvents.length > 0) {
-    return nearbyEvents.reduce((closest, current) => {
-      const closestDist = Math.abs(closest.x - timestamp);
-      const currentDist = Math.abs(current.x - timestamp);
-      return currentDist < closestDist ? current : closest;
-    });
+  for (let i = 0; i < events.length; i++) {
+    const event = events[i];
+    const distance = Math.abs(event.x - timestamp);
+
+    if (distance > xTolerance) continue;
+
+    // Check height range only if within x tolerance
+    const heightRange = event.isImportant
+      ? EVENT_HEIGHTS.important
+      : event.isNew
+      ? EVENT_HEIGHTS.new
+      : EVENT_HEIGHTS.regular;
+
+    if (graphY >= heightRange.start && graphY <= heightRange.end) {
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestEvent = event;
+      }
+    }
   }
 
-  return null;
+  return closestEvent;
 }

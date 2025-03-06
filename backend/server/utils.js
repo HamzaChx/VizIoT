@@ -1,49 +1,17 @@
 import { fetchSlidingWindowData } from "../database/dataFetching.js";
+import { formatDateWithOffset } from "../../utils/utilities.js";
 
 /**
- * Utility function to format a date string with offset.
+ * Utility function to handle sliding window logic
  */
-export function formatDateWithOffset(date) {
-  const offset = -date.getTimezoneOffset();
-  const absOffsetHours = Math.abs(Math.floor(offset / 60))
-    .toString()
-    .padStart(2, "0");
-  const absOffsetMinutes = Math.abs(offset % 60)
-    .toString()
-    .padStart(2, "0");
-  const sign = offset >= 0 ? "+" : "-";
-
-  return `${date.getFullYear()}-${(date.getMonth() + 1)
-    .toString()
-    .padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}T${date
-    .getHours()
-    .toString()
-    .padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}:${date
-    .getSeconds()
-    .toString()
-    .padStart(2, "0")}.${date
-    .getMilliseconds()
-    .toString()
-    .padStart(3, "0")}${sign}${absOffsetHours}:${absOffsetMinutes}`;
-}
-
-/**
- * Utility function to handle sliding window logic for all sensors.
- */
-export const startSlidingWindowStream = (
-  res,
-  db,
-  config,
-  startTime,
-  streamData
-) => {
+export const startSlidingWindowStream = (res, db, config, startTime, streamData) => {
   let endTime = new Date(startTime.getTime() + config.slidingWindowDuration);
 
   const fetchData = async () => {
     if (streamData.isPaused) return;
 
     try {
-      const { events, sensorData, groupSensorMap, groupIntervals, stopStream } =
+      const { eventData, sensorData, groupSensorMap, groupIntervals, stopStream } =
         await fetchSlidingWindowData(
           db,
           formatDateWithOffset(startTime),
@@ -51,15 +19,14 @@ export const startSlidingWindowStream = (
           streamData.currentLimit
         );
 
-      if (stopStream || !sensorData.length) {
-        console.log("No more data available. Closing stream.");
+      if (stopStream) {
         res.write("event: close\ndata: {}\n\n");
         res.end();
         return;
       }
 
       res.write(
-        `data: ${JSON.stringify({ events, sensorData, groupSensorMap, groupIntervals })}\n\n`
+        `data: ${JSON.stringify({ eventData, sensorData, groupSensorMap, groupIntervals })}\n\n`
       );
 
       startTime = new Date(startTime.getTime() + config.windowIncrement);
@@ -70,11 +37,6 @@ export const startSlidingWindowStream = (
   };
 
   const fetchIntervalId = setInterval(fetchData, config.streamInterval);
-
-  res.on("close", () => {
-    console.log("Stream Stopped.");
-    clearInterval(fetchIntervalId);
-  });
-
+  res.on("close", () => clearInterval(fetchIntervalId));
   fetchData();
 };
