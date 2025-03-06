@@ -1,4 +1,5 @@
 import { cleanupUnusedSensors, updateEventBuffer, updateSensorBuffers } from "./graph/buffer.js";
+import { formatDateWithOffset } from "../../../utils/utilities.js";
 
 export function showNewEventsMessage(count) {
   const messageElement = document.getElementById('new-events-message');
@@ -29,29 +30,29 @@ export function showToast(type, title, message) {
   bsToast.show();
 }
 
-export function formatDateWithOffset(date) {
-  const offset = -date.getTimezoneOffset();
-  const absOffsetHours = Math.abs(Math.floor(offset / 60))
-    .toString()
-    .padStart(2, "0");
-  const absOffsetMinutes = Math.abs(offset % 60)
-    .toString()
-    .padStart(2, "0");
-  const sign = offset >= 0 ? "+" : "-";
+// export function formatDateWithOffset(date) {
+//   const offset = -date.getTimezoneOffset();
+//   const absOffsetHours = Math.abs(Math.floor(offset / 60))
+//     .toString()
+//     .padStart(2, "0");
+//   const absOffsetMinutes = Math.abs(offset % 60)
+//     .toString()
+//     .padStart(2, "0");
+//   const sign = offset >= 0 ? "+" : "-";
 
-  return `${date.getFullYear()}-${(date.getMonth() + 1)
-    .toString()
-    .padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}T${date
-    .getHours()
-    .toString()
-    .padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}:${date
-    .getSeconds()
-    .toString()
-    .padStart(2, "0")}.${date
-    .getMilliseconds()
-    .toString()
-    .padStart(3, "0")}${sign}${absOffsetHours}:${absOffsetMinutes}`;
-}
+//   return `${date.getFullYear()}-${(date.getMonth() + 1)
+//     .toString()
+//     .padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}T${date
+//     .getHours()
+//     .toString()
+//     .padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}:${date
+//     .getSeconds()
+//     .toString()
+//     .padStart(2, "0")}.${date
+//     .getMilliseconds()
+//     .toString()
+//     .padStart(3, "0")}${sign}${absOffsetHours}:${absOffsetMinutes}`;
+// }
 
 export function escapeHtml(unsafe) {
   return unsafe

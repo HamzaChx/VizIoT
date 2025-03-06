@@ -4,7 +4,8 @@ import {
   updateSensorBuffers,
   cleanupUnusedSensors
 } from "./graph/buffer.js";
-import { updateSensorCount, showToast, formatDateWithOffset } from "./utils.js";
+import { updateSensorCount, showToast } from "./utils.js";
+import { formatDateWithOffset } from "../../../utils/utilities.js";
 
 let graphManager = null;
 let eventSource = null;
@@ -195,7 +196,7 @@ function startSlidingWindowStream(canvasId) {
       setTimeout(() => {
         console.log("Retrying connection to sliding window stream...");
         startSlidingWindowStream(canvasId);
-      }, 2000);
+      }, 1000);
     }
   };
 
@@ -204,7 +205,7 @@ function startSlidingWindowStream(canvasId) {
     eventSource = null;
     graphManager.reset();
 
-    showToast("danger", "Event Stream Closed", "The sliding window stream has been closed.");
+    showToast("dark", "Event Stream Closed", "The sliding window stream has been closed.");
 
   });
 }

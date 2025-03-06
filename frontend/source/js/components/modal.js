@@ -1,5 +1,5 @@
 import { initializeTabs } from "./tabs.js";
-import { formatDateWithOffset } from "../utils.js";
+import { formatDateWithOffset } from "../../../utils/utilities.js";
 import { renderAnnotationsList } from "./annotations.js";
 
 export function setupModalDrag(modal) {

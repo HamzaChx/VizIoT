@@ -1,34 +1,8 @@
 import { fetchSlidingWindowData } from "../database/dataFetching.js";
+import { formatDateWithOffset } from "../../utils/utilities.js";
 
 /**
- * Utility function to format a date string with offset.
- */
-export function formatDateWithOffset(date) {
-  const offset = -date.getTimezoneOffset();
-  const absOffsetHours = Math.abs(Math.floor(offset / 60))
-    .toString()
-    .padStart(2, "0");
-  const absOffsetMinutes = Math.abs(offset % 60)
-    .toString()
-    .padStart(2, "0");
-  const sign = offset >= 0 ? "+" : "-";
-
-  return `${date.getFullYear()}-${(date.getMonth() + 1)
-    .toString()
-    .padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}T${date
-    .getHours()
-    .toString()
-    .padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}:${date
-    .getSeconds()
-    .toString()
-    .padStart(2, "0")}.${date
-    .getMilliseconds()
-    .toString()
-    .padStart(3, "0")}${sign}${absOffsetHours}:${absOffsetMinutes}`;
-}
-
-/**
- * Utility function to handle sliding window logic for all sensors.
+ * Utility function to handle sliding window logic
  */
 export const startSlidingWindowStream = (res, db, config, startTime, streamData) => {
   let endTime = new Date(startTime.getTime() + config.slidingWindowDuration);
