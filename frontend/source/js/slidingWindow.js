@@ -52,7 +52,7 @@ document.getElementById("decrease-sensor").addEventListener("click", () => {
 document.getElementById("pause-button").addEventListener("click", () => {
   if (!eventSource || isPaused) return;
 
-  fetch("/pause-stream", { method: "POST" })
+  fetch("/api/streaming/pause", { method: "POST" })
     .then((response) => {
       if (response.ok) {
         isPaused = true;
@@ -78,7 +78,7 @@ document.getElementById("play-button").addEventListener("click", () => {
 
   if (isPaused) {
     const currentLimit = parseInt(slider.value);
-    fetch("/update-limit", {
+    fetch("/api/streaming/limit", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -86,7 +86,7 @@ document.getElementById("play-button").addEventListener("click", () => {
       body: JSON.stringify({ limit: currentLimit }),
     })
     .then(() => {
-      return fetch("/resume-stream", { method: "POST" });
+      return fetch("/api/streaming/resume", { method: "POST" });
     })
     .then((response) => {
       if (response.ok) {
@@ -94,7 +94,7 @@ document.getElementById("play-button").addEventListener("click", () => {
         graphManager.startDrawing();
         const timestamp = new Date(lastTimestamp);
         const formattedTimestamp = formatDateWithOffset(timestamp);
-        return fetch(`/update-paused-data?limit=${currentLimit}&timestamp=${encodeURIComponent(formattedTimestamp)}`);
+        return fetch(`/api/streaming/paused-data?limit=${currentLimit}&timestamp=${encodeURIComponent(formattedTimestamp)}`);
       } else {
         console.error("Failed to resume stream:", response.statusText);
       }
@@ -140,7 +140,7 @@ function startSlidingWindowStream(canvasId) {
   sensorLimit = parseInt(slider.value);
 
   eventSource = new EventSource(
-    `/stream-sliding-window?start=${lastTimestamp || ""}&limit=${sensorLimit}`
+    `/api/streaming/window?start=${lastTimestamp || ""}&limit=${sensorLimit}`
   );
 
   eventSource.onmessage = (event) => {

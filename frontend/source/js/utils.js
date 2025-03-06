@@ -30,30 +30,6 @@ export function showToast(type, title, message) {
   bsToast.show();
 }
 
-// export function formatDateWithOffset(date) {
-//   const offset = -date.getTimezoneOffset();
-//   const absOffsetHours = Math.abs(Math.floor(offset / 60))
-//     .toString()
-//     .padStart(2, "0");
-//   const absOffsetMinutes = Math.abs(offset % 60)
-//     .toString()
-//     .padStart(2, "0");
-//   const sign = offset >= 0 ? "+" : "-";
-
-//   return `${date.getFullYear()}-${(date.getMonth() + 1)
-//     .toString()
-//     .padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}T${date
-//     .getHours()
-//     .toString()
-//     .padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}:${date
-//     .getSeconds()
-//     .toString()
-//     .padStart(2, "0")}.${date
-//     .getMilliseconds()
-//     .toString()
-//     .padStart(3, "0")}${sign}${absOffsetHours}:${absOffsetMinutes}`;
-// }
-
 export function escapeHtml(unsafe) {
   return unsafe
     .replace(/&/g, "&amp;")
@@ -69,7 +45,7 @@ export function updateSliderOnPause(graphManager, newLimit, lastTimestamp) {
   const timestamp = new Date(lastTimestamp);
   const formattedTimestamp = formatDateWithOffset(timestamp);
 
-  fetch(`/update-paused-data?limit=${newLimit}&timestamp=${encodeURIComponent(formattedTimestamp)}`)
+  fetch(`/api/streaming/paused-data?limit=${newLimit}&timestamp=${encodeURIComponent(formattedTimestamp)}`)
     .then(response => {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -128,7 +104,7 @@ export function updateSensorCount(newLimit, isPaused, graphManager, lastTimestam
     return;
   }
 
-  fetch("/update-limit", {
+  fetch("/api/streaming/limit", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
