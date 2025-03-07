@@ -1,11 +1,11 @@
 export const EVENT_QUERIES = {
-    UPDATE_IMPORTANCE: `
+  UPDATE_IMPORTANCE: `
         UPDATE EventTimestamps 
         SET is_important = ?
         WHERE timestamp_id = ?
       `,
-  
-    GET_EVENT_TIMESTAMPS: `
+
+  GET_EVENT_TIMESTAMPS: `
         SELECT
           et.timestamp,
           et.is_important,
@@ -24,14 +24,14 @@ export const EVENT_QUERIES = {
         AND et.timestamp BETWEEN ? AND ?
         ORDER BY et.timestamp ASC
       `,
-  
-    INSERT_EVENT: `
+
+  INSERT_EVENT: `
         INSERT OR IGNORE INTO ProcessEvents 
         (name, sensor_id, ranking, description) 
         VALUES (?, ?, ?, ?)
       `,
-  
-    INSERT_EVENT_TIMESTAMP: `
+
+  INSERT_EVENT_TIMESTAMP: `
         INSERT OR IGNORE INTO EventTimestamps 
         (event_id, timestamp) 
         VALUES (?, ?)
