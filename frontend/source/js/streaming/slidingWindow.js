@@ -1,12 +1,12 @@
-import GraphManager from "./graph/graph.js";
+import GraphManager from "../graph/graph.js";
 import {
   updateEventBuffer,
   updateSensorBuffers,
   cleanupUnusedSensors
-} from "./graph/buffer.js";
-import { updateSensorCount, showToast } from "./utils.js";
-import { formatDateWithOffset } from "../../../utils/utilities.js";
-import appState from "./state.js";
+} from "../graph/buffer.js";
+import { updateSensorCount, showToast } from "../utils.js";
+import { formatDateWithOffset } from "../../../../utils/utilities.js";
+import appState from "../state.js";
 
 const slider = document.getElementById("sensor-slider");
 
