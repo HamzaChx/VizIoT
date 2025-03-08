@@ -129,14 +129,17 @@ export default class GraphManager {
     this.renderer.setWindow(xMin, xMax, yMin, yMax);
     this.renderer.drawGrid(0.25, 0.25);
 
-    // Draw axes
     const xTickInterval = Math.ceil((xMax - xMin) / 10) || 1;
     this.renderer.drawAxes(
       xTickInterval,
       (yMax - yMin) / 10 || 1,
       xMin,
       yMin,
-      (tickValue) => Math.round(tickValue)
+      (tickValue) => {
+        const minutes = Math.floor(tickValue / 60);
+        const seconds = Math.floor(tickValue % 60);
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+      }
     );
 
     // Plot data elements

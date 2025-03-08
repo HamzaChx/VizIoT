@@ -1,5 +1,6 @@
 import { cleanupUnusedSensors, updateEventBuffer, updateSensorBuffers } from "./graph/buffer.js";
 import { formatDateWithOffset } from "../../../utils/utilities.js";
+import appState from "./state.js";
 
 export function showNewEventsMessage(count) {
   const messageElement = document.getElementById('new-events-message');
@@ -55,6 +56,11 @@ export function updateSliderOnPause(graphManager, newLimit, lastTimestamp) {
     .then(({ eventData, sensorData, groupSensorMap, groupIntervals }) => {
       if (!sensorData || sensorData.length === 0) return;
 
+      appState.update('sensors', { 
+        sensorMap: groupSensorMap,
+        groupIntervals: groupIntervals 
+      });
+
       graphManager.groupSensorMap = groupSensorMap;
       graphManager.groupIntervals = groupIntervals;
 
@@ -69,18 +75,16 @@ export function updateSliderOnPause(graphManager, newLimit, lastTimestamp) {
           sensorId: entry.sensor_id,
           sensorName: entry.sensor_name,
           originalValue: entry.sliced_value,
-          x: (Date.parse(entry.timestamp) - window.startTime) / 1000,
+          x: (Date.parse(entry.timestamp) - appState.streaming.startTime) / 1000,
           y: scaledY,
           group: entry.group_name,
         };
       });
 
       updateSensorBuffers(transformedData);
-      
-      const events = eventData.events;
-      const count = eventData.newCount;
-      if (events && events.length > 0) {
-        updateEventBuffer(events, count);
+
+      if (eventData && eventData.length > 0) {
+        updateEventBuffer(eventData);
       }
 
       graphManager.requestRedraw();
@@ -90,33 +94,24 @@ export function updateSliderOnPause(graphManager, newLimit, lastTimestamp) {
     });
 }
 
-export function updateSensorCount(newLimit, isPaused, graphManager, lastTimestamp, sensorLimit) {
+export function updateSensorCount(newLimit) {
 
-  const sensorCountLabel = document.getElementById("sensor-count");
+  document.getElementById("sensor-count").textContent = newLimit;
 
-  if (newLimit < 1) return;
-
-  sensorLimit = newLimit;
-  sensorCountLabel.textContent = newLimit;
-
-  if (isPaused && graphManager) {
-    updateSliderOnPause(graphManager, newLimit, lastTimestamp);
+  appState.update('sensors', { limit: newLimit });
+  
+  if (appState.streaming.isPaused && appState.graph.manager) {
+    updateSliderOnPause(appState.graph.manager, newLimit, appState.streaming.lastTimestamp);
     return;
   }
-
+  
   fetch("/api/streaming/limit", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ limit: newLimit }),
-  })
-    .then((response) => {
-      if (!response.ok) {
-        console.error("Failed to update sensor limit:", response.statusText);
-      }
-    })
-    .catch((error) => {
-      console.error("Error updating sensor limit:", error);
-    });
+  }).catch(error => {
+    console.error("Failed to update sensor limit:", error);
+    showToast("danger", "Error", "Failed to update sensor limit");
+  });
+
 }

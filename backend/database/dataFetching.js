@@ -29,16 +29,10 @@ export async function fetchEventTimestamps(db, rawData, start, end, currentStep)
     );
 
     if (!events.length) {
-      return {
-        events: [],
-        newCount: 0,
-      };
+      return [];
     }
 
-    return {
-      events,
-      newCount: 0,
-    };
+    return events;
   } catch (error) {
     console.error("Error fetching event timestamps:", error.message);
     throw error;

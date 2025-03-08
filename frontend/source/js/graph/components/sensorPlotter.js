@@ -32,7 +32,7 @@ export default class SensorPlotter {
   
           renderer.setLineProperties(this.groupColorMap[group]);
 
-          renderer.drawPolyline({ x, y }); // TODO: Replace with drawPoint instead
+          renderer.drawPolyline({ x, y });
 
         }
       });

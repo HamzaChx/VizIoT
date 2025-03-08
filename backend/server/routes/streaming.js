@@ -1,7 +1,7 @@
 import express from "express";
 import { initializeDatabase } from "../../database/db.js";
 import { fetchSlidingWindowData } from "../../database/dataFetching.js";
-import { startSlidingWindowStream } from "../utils.js";
+import { startSlidingWindowStream } from "../streamHandler.js";
 import { formatDateWithOffset } from "../../../utils/utilities.js";
 
 const router = express.Router();

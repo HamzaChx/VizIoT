@@ -1,3 +1,5 @@
+import appState from "../state.js";
+
 let sensorBuffers = {};
 let eventBuffer = [];
 const eventCache = new WeakMap();
@@ -80,14 +82,12 @@ export function cleanupUnusedSensors(activeSensorIds) {
   });
 }
 
-let eventCount = 0;
-
 /**
  * Updates the event buffer with incoming events.
  * @param {Array} events - Array of new events.
  */
-export function updateEventBuffer(events, count) {
-  if (!events || !window.startTime) return;
+export function updateEventBuffer(events) {
+  if (!events || !appState.streaming.startTime) return;
 
   if (events.length === eventBuffer.length) {
     let needsUpdate = false;
@@ -103,7 +103,7 @@ export function updateEventBuffer(events, count) {
     let processed = eventCache.get(event);
     if (!processed) {
       processed = {
-        x: (Date.parse(event.timestamp) - window.startTime) / 1000,
+        x: (Date.parse(event.timestamp) - appState.streaming.startTime) / 1000,
         name: event.event_name,
         ranking: event.ranking,
         sensorId: event.sensor_id,
@@ -116,12 +116,7 @@ export function updateEventBuffer(events, count) {
     }
     return processed;
   });
-
-  eventCount = count;
-}
-
-export function getEventCount() {
-  return eventCount;
+  
 }
 
 /**

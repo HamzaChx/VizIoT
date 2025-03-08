@@ -2,7 +2,13 @@ import { fetchSlidingWindowData } from "../database/dataFetching.js";
 import { formatDateWithOffset } from "../../utils/utilities.js";
 
 /**
- * Utility function to handle sliding window logic
+ * Creates a Server-Sent Events stream that sends data packets using a sliding time window
+ * 
+ * @param {Object} res - Express response object for SSE
+ * @param {Object} db - Database connection
+ * @param {Object} config - Configuration with slidingWindowDuration and windowIncrement
+ * @param {Date} startTime - Initial window start time
+ * @param {Object} streamData - Stream state containing isPaused and currentLimit
  */
 export const startSlidingWindowStream = (res, db, config, startTime, streamData) => {
   let endTime = new Date(startTime.getTime() + config.slidingWindowDuration);
@@ -38,5 +44,6 @@ export const startSlidingWindowStream = (res, db, config, startTime, streamData)
 
   const fetchIntervalId = setInterval(fetchData, config.streamInterval);
   res.on("close", () => clearInterval(fetchIntervalId));
+  
   fetchData();
 };
