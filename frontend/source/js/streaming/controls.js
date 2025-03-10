@@ -9,6 +9,10 @@ const slider = document.getElementById("sensor-slider");
  */
 export function initializeControls() {
 
+  const initialLimit = parseInt(slider.value);
+  updateSensorCount(initialLimit);
+  appState.sensors.limit = initialLimit;
+
   slider.addEventListener("input", (event) => {
     const newLimit = parseInt(event.target.value);
     appState.sensors.limit = newLimit;

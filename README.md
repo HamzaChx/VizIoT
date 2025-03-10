@@ -41,6 +41,15 @@ The thesis adopts the Design Science Research Methodology (DSRM), focusing on th
 2. How can process events be efficiently visualized in a structured IoT sensor data stream to facilitate process monitoring and analysis?
 3. How can the effectiveness of the application be evaluated in detecting significant events within IoT sensor data streams?
 
+## Project Structure
+tbc
+
+## User Guide
+tbc
+
+## Prerequisites
+tbc
+
 ## How to Use
 
 1. Clone the repository:  
@@ -57,6 +66,7 @@ The thesis adopts the Design Science Research Methodology (DSRM), focusing on th
 
     ```bash
     npm install
+     ```
 
 4. Run the application
 

@@ -14,15 +14,21 @@ const appState = {
     limit: 1,
     sensorMap: {},
     groupIntervals: {},
+    groupSensorMap: {}
   },
 
   graph: {
     manager: null,
+    isDrawing: false,
+    isPaused: false,
+    forceRedraw: false,
+    lastUpdateTime: 0,
   },
 
   ui: {
     highlightedSensors: [],
     highlightedEvent: null,
+    lastClickY: null
   },
 
   /**
