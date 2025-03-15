@@ -1,3 +1,5 @@
+import { DATA_FETCH_QUERIES } from "./queries/dataFetchQueries.js";
+
 export async function fetchEventTimestamps(db, rawData, start, end, currentStep) {
   try {
     const sensorIds = [...new Set(rawData.map((entry) => entry.sensor_id))];
@@ -27,16 +29,10 @@ export async function fetchEventTimestamps(db, rawData, start, end, currentStep)
     );
 
     if (!events.length) {
-      return {
-        events: [],
-        newCount: 0,
-      };
+      return [];
     }
 
-    return {
-      events,
-      newCount: 0,
-    };
+    return events;
   } catch (error) {
     console.error("Error fetching event timestamps:", error.message);
     throw error;
@@ -45,26 +41,7 @@ export async function fetchEventTimestamps(db, rawData, start, end, currentStep)
 
 export async function fetchSlidingWindowData(db, start, end, limit = 1) {
   try {
-    const rawData = await db.all(
-      `
-      SELECT 
-        sd.sensor_id, 
-        sd.timestamp, 
-        sd.original_value, 
-        sd.normalized_value, 
-        g.name AS group_name, 
-        s.name AS sensor_name,
-        s.type
-      FROM SensorData sd
-      JOIN Sensors s ON sd.sensor_id = s.sensor_id
-      JOIN Groups g ON s.group_id = g.group_id
-      WHERE sd.sensor_id IN (
-          SELECT DISTINCT pe.sensor_id
-          FROM ProcessEvents pe
-          WHERE pe.event_id BETWEEN 1 AND ?
-      )
-      AND sd.timestamp BETWEEN ? AND ?
-      `,
+    const rawData = await db.all(DATA_FETCH_QUERIES.FETCH_SLIDING_WINDOW,
       [limit, start, end]
     );
 

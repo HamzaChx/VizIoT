@@ -4,8 +4,10 @@ export default class GraphRenderer {
     this.gr = null;
     
     this.viewportSettings = {
-      start: 0.05,
-      end: 1
+      xMin: 0.01,
+      xMax: 1,
+      yMin: 0.05,
+      yMax: 1
     };
     this.previousWindow = { xMin: 0, xMax: 30 };
     this.previousLatestX = undefined;
@@ -27,7 +29,12 @@ export default class GraphRenderer {
   
   setViewport() {
     if (this.gr) {
-      this.gr.setviewport(0.01, 1, 0.05, 1);
+      this.gr.setviewport(
+        this.viewportSettings.xMin, 
+        this.viewportSettings.xMax, 
+        this.viewportSettings.yMin, 
+        this.viewportSettings.yMax
+      );
     }
   }
 
@@ -64,15 +71,15 @@ export default class GraphRenderer {
   getCanvasRect() {
     const canvas = document.getElementById(this.canvasId);
     if (!canvas) return null;
-
+  
     const canvasRect = canvas.getBoundingClientRect();
     return {
-      left: canvasRect.left + canvasRect.width * this.viewportSettings.start,
-      top: canvasRect.top + canvasRect.height * this.viewportSettings.start,
-      width: canvasRect.width * (this.viewportSettings.end - this.viewportSettings.start),
-      height: canvasRect.height * (this.viewportSettings.end - this.viewportSettings.start),
-      right: canvasRect.left + canvasRect.width * this.viewportSettings.end,
-      bottom: canvasRect.top + canvasRect.height * this.viewportSettings.end,
+      left: canvasRect.left + canvasRect.width * this.viewportSettings.xMin,
+      top: canvasRect.top + canvasRect.height * this.viewportSettings.yMin,
+      width: canvasRect.width * (this.viewportSettings.xMax - this.viewportSettings.xMin),
+      height: canvasRect.height * (this.viewportSettings.yMax - this.viewportSettings.yMin),
+      right: canvasRect.left + canvasRect.width * this.viewportSettings.xMax,
+      bottom: canvasRect.top + canvasRect.height * this.viewportSettings.yMax,
     };
   }
 

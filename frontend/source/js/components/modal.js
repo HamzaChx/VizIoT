@@ -1,6 +1,7 @@
 import { initializeTabs } from "./tabs.js";
 import { formatDateWithOffset } from "../../../utils/utilities.js";
 import { renderAnnotationsList } from "./annotations.js";
+import appState from "../state.js";
 
 export function setupModalDrag(modal) {
   const dialog = modal.querySelector(".modal-dialog");
@@ -123,7 +124,7 @@ export function showCombinedModal(eventInfo, sensors) {
 }
 
 export function renderEventContent(eventInfo) {
-  const date = new Date(eventInfo.x * 1000 + window.startTime);
+  const date = new Date(eventInfo.x * 1000 + appState.streaming.startTime);
   const timestamp = formatDateWithOffset(date);
 
   return `
@@ -141,7 +142,7 @@ export function renderEventContent(eventInfo) {
               </div>
               <div class="col-6">
                   <small class="text-muted">Time</small>
-                  <div class="fw-bold">${new Date(eventInfo.x * 1000 + window.startTime).toLocaleString()}</div>
+                  <div class="fw-bold">${date.toLocaleString()}</div>
               </div>
           </div>
           <div class="mt-3">

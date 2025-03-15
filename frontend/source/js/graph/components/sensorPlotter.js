@@ -4,12 +4,13 @@ export default class SensorPlotter {
       this.groupSensorMap = {};
       this.nextColorIndex = 4;
       this.lastPlottedPoints = {};
+      this.maxTimeGap = 2 ;
     }
   
     plotSensorData(renderer, buffers, range) {
       if (!renderer || !range) return {};
       
-      const { xMin, xMax } = range;
+      // const { xMin, xMax } = range;
       this.groupColorMap = {};
       this.nextColorIndex = 4;
       const computedGroupSensorMap = {};
@@ -30,6 +31,7 @@ export default class SensorPlotter {
           }
   
           renderer.setLineProperties(this.groupColorMap[group]);
+
           renderer.drawPolyline({ x, y });
 
         }

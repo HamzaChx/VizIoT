@@ -6,6 +6,7 @@ import {
 } from "./buffer.js";
 import { updateLegend } from "./legend.js";
 import { handleCanvasClick } from "./clickHandler.js";
+import appState from "../state.js";
 
 import GraphRenderer from "./components/graphRenderer.js";
 import HighlightManager from "./components/highlightManager.js";
@@ -15,24 +16,20 @@ import EventPlotter from "./components/eventPlotter.js";
 export default class GraphManager {
   constructor(canvasId) {
     this.canvasId = canvasId;
-    
+
     // Component initialization
     this.renderer = new GraphRenderer(canvasId);
     this.highlightManager = new HighlightManager();
     this.sensorPlotter = new SensorPlotter();
     this.eventPlotter = new EventPlotter();
-    
-    // State management
-    this.isDrawing = false;
-    this.isPaused = false;
-    this.forceRedraw = false;
-    this.lastUpdateTime = 0;
-    
-    // Group mapping
-    this.groupSensorMap = {};
-    this.groupIntervals = {};
-    
-    this.lastClickY = null;
+
+    appState.update("graph", {
+      manager: this,
+      isDrawing: false,
+      isPaused: false,
+      forceRedraw: false,
+      lastUpdateTime: 0,
+    });
   }
 
   /**
@@ -42,14 +39,14 @@ export default class GraphManager {
   initialize(autoStart = false) {
     this.renderer.initialize().then(() => {
       this.renderer.setViewport(this.renderer);
-      
+
       const canvasElement = document.getElementById(this.canvasId);
       if (canvasElement) {
-        canvasElement.addEventListener("click", (event) => 
+        canvasElement.addEventListener("click", (event) =>
           handleCanvasClick(event, this)
         );
       }
-      
+
       if (autoStart) this.startDrawing();
     });
   }
@@ -58,8 +55,7 @@ export default class GraphManager {
    * Starts the graph rendering process
    */
   startDrawing() {
-    this.isDrawing = true;
-    this.isPaused = false;
+    appState.update("graph", { isDrawing: true, isPaused: false });
     this.drawFrame();
   }
 
@@ -67,8 +63,8 @@ export default class GraphManager {
    * Pauses the graph rendering process
    */
   pauseDrawing() {
-    if (this.isDrawing) {
-      this.isPaused = true;
+    if (appState.graph.isDrawing) {
+      appState.update("graph", { isPaused: true });
     }
     this.drawFrame();
   }
@@ -77,7 +73,7 @@ export default class GraphManager {
    * Requests a redraw of the graph
    */
   requestRedraw() {
-    this.forceRedraw = true;
+    appState.update("graph", { forceRedraw: true });
     this.drawFrame();
   }
 
@@ -85,8 +81,7 @@ export default class GraphManager {
    * Stops the graph rendering process
    */
   stopDrawing() {
-    this.isDrawing = false;
-    this.isPaused = false;
+    appState.update("graph", { isDrawing: false, isPaused: false });
   }
 
   /**
@@ -98,6 +93,7 @@ export default class GraphManager {
     clearEventBuffer();
     this.renderer.clear();
     updateLegend({}, {}, {});
+    appState.update("sensors", { groupSensorMap: {}, groupIntervals: {} });
     this.renderer.updateWorkstation();
   }
 
@@ -105,19 +101,20 @@ export default class GraphManager {
    * Main drawing function that coordinates all components
    */
   drawFrame() {
-    if (!this.isDrawing) return;
-    if (this.isPaused && !this.forceRedraw) return;
+    if (!appState.graph.isDrawing) return;
+    if (appState.graph.isPaused && !appState.graph.forceRedraw) return;
 
     const buffers = getSensorBuffers();
     const range = this.renderer.calculateVisibleWindow(buffers);
-    
+
     if (!range) {
       requestAnimationFrame(() => this.drawFrame());
       return;
     }
 
     let { xMin, xMax } = range;
-    const yMin = 0, yMax = 1;
+    const yMin = 0,
+      yMax = 1;
 
     if (xMin === Infinity || xMax === -Infinity) {
       requestAnimationFrame(() => this.drawFrame());
@@ -129,33 +126,36 @@ export default class GraphManager {
     this.renderer.setWindow(xMin, xMax, yMin, yMax);
     this.renderer.drawGrid(0.25, 0.25);
 
-    // Draw axes
     const xTickInterval = Math.ceil((xMax - xMin) / 10) || 1;
     this.renderer.drawAxes(
       xTickInterval,
       (yMax - yMin) / 10 || 1,
       xMin,
       yMin,
-      (tickValue) => Math.round(tickValue)
+      (tickValue) => {
+        const minutes = Math.floor(tickValue / 60);
+        const seconds = Math.floor(tickValue % 60);
+        return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+      }
     );
 
     // Plot data elements
     const events = getEventBuffer();
     const groupColorMap = this.sensorPlotter.plotSensorData(this.renderer, buffers, range);
     this.eventPlotter.plotEventLines(this.renderer, events, range);
-    
+
     // Update the group sensor map from the plotter
-    this.groupSensorMap = this.sensorPlotter.getGroupSensorMap();
-    
+    appState.update("sensors", { groupSensorMap: this.sensorPlotter.getGroupSensorMap() });
+
     // Update the legend
-    updateLegend(groupColorMap, this.groupSensorMap, this.groupIntervals);
+    updateLegend(groupColorMap, appState.sensors.groupSensorMap, appState.sensors.groupIntervals);
 
     // Draw highlights on top
     this.highlightManager.drawHighlights(this.renderer, buffers, range);
 
-    this.forceRedraw = false;
+    appState.update("graph", { forceRedraw: false });
 
-    if (!this.isPaused) {
+    if (!appState.graph.isPaused) {
       requestAnimationFrame(() => this.drawFrame());
     }
   }
@@ -188,32 +188,34 @@ export default class GraphManager {
   getEventBuffer() {
     return getEventBuffer();
   }
-  
+
   /**
    * Sets the highlighted sensors
    */
   set highlightedSensors(sensorIds) {
+    appState.update("ui", { highlightedSensors: sensorIds });
     this.highlightManager.setHighlightedSensors(sensorIds);
   }
-  
+
   /**
    * Gets the highlighted sensors
    */
   get highlightedSensors() {
-    return this.highlightManager.highlightedSensors;
+    return appState.ui.highlightedSensors;
   }
-  
+
   /**
    * Sets the highlighted event
    */
   set highlightedEvent(event) {
+    appState.update("ui", { highlightedEvent: event });
     this.highlightManager.setHighlightedEvent(event);
   }
-  
+
   /**
    * Gets the highlighted event
    */
   get highlightedEvent() {
-    return this.highlightManager.highlightedEvent;
+    return appState.ui.highlightedEvent;
   }
 }
