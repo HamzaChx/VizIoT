@@ -5,9 +5,7 @@ const CREATE_TABLE_QUERIES = {
   groups: `
     CREATE TABLE IF NOT EXISTS Groups (
       group_id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL UNIQUE,
-      group_min REAL,
-      group_max REAL
+      name TEXT NOT NULL UNIQUE
     );
   `,
   sensors: `
