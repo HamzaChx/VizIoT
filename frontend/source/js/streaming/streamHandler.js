@@ -78,14 +78,14 @@ export function startSlidingWindowStream(canvasId) {
    */
   export function resumeStream(currentLimit) {
     fetch("/api/streaming/limit", {
-      method: "POST",
+      method: "PUT",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ limit: currentLimit }),
     })
     .then(() => {
-      return fetch("/api/streaming/resume", { method: "POST" });
+      return fetch("/api/streaming/resume", { method: "PUT" });
     })
     .then((response) => {
       if (response.ok) {

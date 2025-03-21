@@ -106,7 +106,7 @@ export function updateSensorCount(newLimit) {
   }
   
   fetch("/api/streaming/limit", {
-    method: "POST",
+    method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ limit: newLimit }),
   }).catch(error => {

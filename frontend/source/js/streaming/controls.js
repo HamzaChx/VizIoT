@@ -46,7 +46,7 @@ export function initializeControls() {
   document.getElementById("pause-button").addEventListener("click", () => {
     if (!appState.streaming.eventSource || appState.streaming.isPaused) return;
 
-    fetch("/api/streaming/pause", { method: "POST" })
+    fetch("/api/streaming/pause", { method: "PUT" })
       .then((response) => {
         if (response.ok) {
           appState.update('streaming', { isPaused: true });
