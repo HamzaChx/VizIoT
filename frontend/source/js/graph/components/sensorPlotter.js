@@ -10,7 +10,6 @@ export default class SensorPlotter {
     plotSensorData(renderer, buffers, range) {
       if (!renderer || !range) return {};
       
-      // const { xMin, xMax } = range;
       this.groupColorMap = {};
       this.nextColorIndex = 4;
       const computedGroupSensorMap = {};

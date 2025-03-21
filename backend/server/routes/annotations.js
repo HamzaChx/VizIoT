@@ -5,6 +5,24 @@ import { ANNOTATION_QUERIES } from "../../database/queries/index.js";
 const router = express.Router();
 
 /**
+ * Get all annotations
+ * @route GET /api/annotations
+ */
+router.get("/", async (req, res) => {
+  try {
+    const db = await getActiveDb();
+    const query = ANNOTATION_QUERIES.FETCH_ALL;
+    
+    const annotations = await db.all(query);
+    
+    res.json(annotations);
+  } catch (error) {
+    console.error(`Error fetching all annotations: ${error.message}`);
+    res.status(500).json({ error: "Failed to fetch annotations" });
+  }
+});
+
+/**
  * Get annotations for a timestamp
  * @route GET /api/annotations/:timestampId
  */

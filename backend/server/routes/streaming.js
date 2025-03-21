@@ -13,7 +13,6 @@ export const SLIDING_WINDOW_CONFIG = {
   streamInterval: 1000 / 24, // Controls the interval at which updates are sent to the client
 };
 
-// Track active streams
 export const activeStreams = new Map();
 
 /**
@@ -26,9 +25,9 @@ router.get("/config", (req, res) => {
 
 /**
  * Update sensor limit for all active streams
- * @route POST /api/streaming/limit
+ * @route PUT /api/streaming/limit
  */
-router.post("/limit", (req, res) => {
+router.put("/limit", (req, res) => {
   const newLimit = parseInt(req.body.limit, 10);
   if (isNaN(newLimit) || newLimit <= 0) {
     return res.status(400).send("Invalid limit value");
@@ -82,9 +81,9 @@ router.get("/paused-data", async (req, res) => {
 
 /**
  * Pause an active stream
- * @route POST /api/streaming/pause
+ * @route PUT /api/streaming/pause
  */
-router.post("/pause", (req, res) => {
+router.put("/pause", (req, res) => {
   const stream = Array.from(activeStreams.keys()).find(
     (stream) => stream.req.ip === req.ip
   );
@@ -100,9 +99,9 @@ router.post("/pause", (req, res) => {
 
 /**
  * Resume a paused stream
- * @route POST /api/streaming/resume
+ * @route PUT /api/streaming/resume
  */
-router.post("/resume", (req, res) => {
+router.put("/resume", (req, res) => {
   const stream = Array.from(activeStreams.keys()).find(
     (stream) => stream.req.ip === req.ip
   );
