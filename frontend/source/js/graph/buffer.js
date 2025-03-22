@@ -9,7 +9,7 @@ const eventCache = new WeakMap();
  * @param {Array} newGraphData - Array of new data points.
  */
 export function updateSensorBuffers(newGraphData) {
-  const maxBufferSize = 60;
+  const maxBufferSize = 300;
 
   newGraphData.forEach(
     ({

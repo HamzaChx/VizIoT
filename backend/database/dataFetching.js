@@ -139,3 +139,22 @@ function buildGroupSensorMap(rawData) {
     return map;
   }, {});
 }
+
+export async function getFirstAvailableTimestamp(db) {
+  try {
+    const result = await db.get(`
+      SELECT MIN(timestamp) as first_timestamp 
+      FROM SensorData
+    `);
+    
+    if (result && result.first_timestamp) {
+      console.log("First available timestamp in database:", result.first_timestamp);
+      return result.first_timestamp;
+    } else {
+      console.log("No timestamps found in database, using default");
+      return "2025-03-21T10:00:00.00+02:00";
+    }
+  } catch (error) {
+    return "2025-03-21T10:00:00.00+02:00";
+  }
+}

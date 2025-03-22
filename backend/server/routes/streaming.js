@@ -1,6 +1,6 @@
 import express from "express";
 import { initializeDatabase } from "../../database/db.js";
-import { fetchSlidingWindowData } from "../../database/dataFetching.js";
+import { fetchSlidingWindowData, getFirstAvailableTimestamp } from "../../database/dataFetching.js";
 import { startSlidingWindowStream } from "../streamHandler.js";
 import { formatDateWithOffset } from "../../../utils/utilities.js";
 
@@ -10,7 +10,7 @@ const router = express.Router();
 export const SLIDING_WINDOW_CONFIG = {
   slidingWindowDuration: 30 * 1000, // Duration of the window
   windowIncrement: 500, // Determines how much time the sliding window moves forward on each increment
-  streamInterval: 100, // Controls the interval at which updates are sent to the client
+  streamInterval: 125, // Controls the interval at which updates are sent to the client
 };
 
 export const activeStreams = new Map();
@@ -126,11 +126,10 @@ router.get("/window", async (req, res) => {
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
 
-    const startQuery = req.query.start;
     const limit = parseInt(req.query.limit, 10) || 1;
-    const startTime = startQuery
-      ? new Date(startQuery)
-      : new Date("2025-03-21T10:00:00.00+02:00");
+    // const startTime =  new Date("2023-04-28T17:18:23.00+02:00");
+    const firstTimestamp = await getFirstAvailableTimestamp(db);
+    const startTime = new Date(firstTimestamp);
 
     const streamData = {
       isPaused: false,
