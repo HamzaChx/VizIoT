@@ -19,4 +19,21 @@ router.get("/", async (req, res) => {
   }
 });
 
+/**
+ * Get total number of available sensors
+ * @route GET /api/sensors/count
+ */
+router.get("/count", async (req, res) => {
+  try {
+    const db = await initializeDatabase();
+    
+    const result = await db.all("SELECT COUNT(DISTINCT sensor_id) as count FROM Sensors");
+    
+    res.json({ count: result[0].count });
+  } catch (error) {
+    console.error("Error fetching sensor count:", error);
+    res.status(500).json({ error: "Failed to fetch sensor count" });
+  }
+});
+
 export default router;

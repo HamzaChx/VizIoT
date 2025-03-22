@@ -5,9 +5,35 @@ import { startSlidingWindowStream, stopSlidingWindowStream, resumeStream } from 
 const slider = document.getElementById("sensor-slider");
 
 /**
+ * Fetch available sensor count and update slider max value
+ */
+async function updateSensorLimit() {
+  try {
+    const response = await fetch("/api/sensors/count");
+    if (response.ok) {
+      const { count } = await response.json();
+      
+      slider.max = count;
+      
+      if (parseInt(slider.value) > count) {
+        slider.value = count;
+        updateSensorCount(count);
+        appState.sensors.limit = count;
+      }
+    } else {
+      console.error("Failed to fetch sensor count");
+    }
+  } catch (error) {
+    console.error("Error fetching sensor count:", error);
+  }
+}
+
+/**
  * Set up all UI controls for streaming functionality
  */
 export function initializeControls() {
+
+  updateSensorLimit();
 
   const initialLimit = parseInt(slider.value);
   updateSensorCount(initialLimit);

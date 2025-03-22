@@ -10,18 +10,13 @@ export async function handleCanvasClick(event, graphManager) {
   const rect = graphManager.getBoundingClientRect();
   if (!rect) return;
 
-  // Get raw canvas coordinates
   const rawX = event.clientX - rect.left;
   const rawY = event.clientY - rect.top;
 
-  // Transform to normalized graph coordinates (0-1)
   const graphX = rawX / rect.width;
   
-  // Add the viewport.yMin offset (0.05) to shift the click detection up by 5%
-  // This aligns the click detection with where lines are actually drawn
   const graphY = 1 - (rawY / rect.height) - graphManager.renderer.viewportSettings.yMin;
   
-  // Rest of the function remains the same...
   appState.update("ui", { lastClickY: graphY });
   
   const timestamp = translateXToTimestamp(graphX, graphManager);
@@ -32,13 +27,11 @@ export async function handleCanvasClick(event, graphManager) {
   graphManager.highlightedSensors = sensors.map((s) => s.sensorId);
   graphManager.requestRedraw();
   
-  // Show debug marker if enabled
   if (appState.debug?.showClickMarkers) {
     graphManager.drawDebugMarker(timestamp, graphY);
     graphManager.requestRedraw();
   }
   
-  // Show modal if we have data to display
   if (eventInfo || sensors.length > 0) {
     try {
       if (eventInfo) {
@@ -82,17 +75,13 @@ function getSensorsInRegion(timestamp, graphManager, graphY) {
   const results = [];
   
   if (!Object.keys(buffers).length) return results;
-  
-  // Small tolerance in graph coordinates
+
   const xTolerance = 0.5;
   const yTolerance = 0.025;
   
-  // For each sensor line
   Object.entries(buffers).forEach(([sensorId, data]) => {
-    // Skip invalid data
     if (!data.x || !data.x.length || !data.y || !data.y.length) return;
     
-    // Find closest point by X
     let closestPointIdx = -1;
     let closestXDist = Infinity;
     
@@ -103,17 +92,13 @@ function getSensorsInRegion(timestamp, graphManager, graphY) {
         closestPointIdx = i;
       }
     }
-    
-    // If we found a point and it's within tolerance
+
     if (closestPointIdx !== -1 && closestXDist <= xTolerance) {
-      // Get the Y value at that X position
       const pointY = data.y[closestPointIdx];
       
-      // Check if click is close enough to point's Y position
       const yDist = Math.abs(pointY - graphY);
       
       if (yDist <= yTolerance) {
-        // Found a match
         const value = closestPointIdx < data.values?.length 
           ? data.values[closestPointIdx] 
           : "N/A";
@@ -126,13 +111,12 @@ function getSensorsInRegion(timestamp, graphManager, graphY) {
           value,
           timestamp: date,
           group: data.group,
-          distance: yDist // For sorting results
+          distance: yDist
         });
       }
     }
   });
   
-  // Return closest result first (if multiple found)
   return results.sort((a, b) => a.distance - b.distance);
 }
 
@@ -156,7 +140,6 @@ function getEventAtTimestamp(timestamp, graphManager) {
 
     if (distance > xTolerance) continue;
 
-    // Check height range only if within x tolerance
     const heightRange = event.isImportant
       ? EVENT_HEIGHTS.important
       : event.isNew

@@ -8,21 +8,21 @@ const router = express.Router();
 
 /**
  * Load log data into the database
- * @route GET /api/data/load
+ * @route GET /api/data
  */
-router.get("/load", async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const sensorDataFilePath = path.join(
       __dirname,
-      "../logs/sensor_data_stream.json"
+      "../logs/evaluation/stream_data.json"
     );
     const eventFilePath = path.join(
       __dirname,
-      "../logs/chess_piece_production_j_result.json"
+      "../logs/evaluation/events.json"
     );
     const yamlFilePath = path.join(
       __dirname,
-      "../logs/chess_piece_production.yaml"
+      "../logs/evaluation/groups.yaml"
     );
 
     await processAndStore(sensorDataFilePath, eventFilePath, yamlFilePath);

@@ -213,12 +213,19 @@ export async function storeSensorEvents(processEvents) {
         [name]
       );
       if (!event_id) continue;
-      for (const { timestamp } of events) {
+      for (const { timestamp, annotation } of events) {
         await insertOrUpdate(
           db,
           "INSERT OR IGNORE INTO EventTimestamps (event_id, timestamp) VALUES (?, ?)",
           [event_id, timestamp]
         );
+
+        await insertOrUpdate(
+          db,
+          "INSERT OR IGNORE INTO EventAnnotations (timestamp_id, annotation) VALUES (?, ?)",
+          [event_id, annotation]
+        );
+
       }
     }
   });

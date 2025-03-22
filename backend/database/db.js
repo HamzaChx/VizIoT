@@ -60,7 +60,7 @@ const CREATE_TABLE_QUERIES = {
 };
 
 export async function initializeDatabase() {
-  const db = await open({ filename: "./data/sensor_logs.db", driver: sqlite3.Database });
+  const db = await open({ filename: "./data/evaluation.db", driver: sqlite3.Database });
   for (const query of Object.values(CREATE_TABLE_QUERIES)) {
     await db.exec(query);
   }

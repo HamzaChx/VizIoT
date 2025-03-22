@@ -130,7 +130,7 @@ router.get("/window", async (req, res) => {
     const limit = parseInt(req.query.limit, 10) || 1;
     const startTime = startQuery
       ? new Date(startQuery)
-      : new Date("2023-04-28T17:01:00.00+02:00");
+      : new Date("2025-03-21T07:00:00.50+02:00");
 
     const streamData = {
       isPaused: false,
