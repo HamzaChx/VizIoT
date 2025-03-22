@@ -41,8 +41,6 @@ export async function fetchEventTimestamps(db, rawData, start, end, currentStep)
 
 export async function fetchSlidingWindowData(db, start, end, limit = 1) {
 
-  console.log("Fetching sliding window data for time range: ", start, " to ", end, " with limit: ", limit);
-
   try {
     const rawData = await db.all(DATA_FETCH_QUERIES.FETCH_SLIDING_WINDOW,
       [limit, start, end]
