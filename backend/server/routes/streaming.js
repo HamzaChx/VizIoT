@@ -9,8 +9,8 @@ const router = express.Router();
 // Configuration for sliding window
 export const SLIDING_WINDOW_CONFIG = {
   slidingWindowDuration: 30 * 1000, // Duration of the window
-  windowIncrement: 1000 / 24, // Determines how much time the sliding window moves forward on each increment
-  streamInterval: 1000 / 24, // Controls the interval at which updates are sent to the client
+  windowIncrement: 500, // Determines how much time the sliding window moves forward on each increment
+  streamInterval: 100, // Controls the interval at which updates are sent to the client
 };
 
 export const activeStreams = new Map();
