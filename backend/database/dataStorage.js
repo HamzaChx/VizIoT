@@ -27,16 +27,14 @@ const labelEncode = (() => {
     }
 
     const encodedValue = sensorMap.get(normalizedValue);
-
+    
+    // Calculate normalized value (0 to 1 range)
     const totalValues = sensorMap.size;
     const normalized = totalValues > 1 ? encodedValue / (totalValues - 1) : 0;
 
-    const flipFlopNormalized =
-      encodedValue % 2 === 0 ? normalized : normalized * -1;
-
     return {
       encoded: encodedValue,
-      normalized: flipFlopNormalized,
+      normalized: normalized, // Use the properly normalized value directly
     };
   };
 })();

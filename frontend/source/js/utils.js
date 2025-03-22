@@ -77,7 +77,7 @@ export function updateSliderOnPause(graphManager, newLimit, lastTimestamp) {
           originalValue: entry.sliced_value,
           x: (Date.parse(entry.timestamp) - appState.streaming.startTime) / 1000,
           y: scaledY,
-          group: entry.group_name,
+          group: entry.group_name
         };
       });
 

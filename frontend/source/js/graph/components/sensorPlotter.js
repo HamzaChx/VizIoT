@@ -31,13 +31,46 @@ export default class SensorPlotter {
   
           renderer.setLineProperties(this.groupColorMap[group]);
 
-          renderer.drawPolyline({ x, y });
-
+          // Split into segments where time gaps are too large
+          const segments = this.splitIntoSegments(x, y);
+          segments.forEach(segment => {
+            if (segment.x.length > 1) {
+              renderer.drawPolyline(segment);
+            }
+          });
         }
       });
   
       this.groupSensorMap = computedGroupSensorMap;
       return this.groupColorMap;
+    }
+    
+    // Split data into segments when there are significant time gaps
+    splitIntoSegments(xValues, yValues) {
+      const segments = [];
+      let currentSegment = { x: [], y: [] };
+      
+      for (let i = 0; i < xValues.length; i++) {
+        // Check for time gap with previous point
+        if (i > 0 && (xValues[i] - xValues[i-1]) > this.maxTimeGap) {
+          // Save the current segment if it has points
+          if (currentSegment.x.length > 0) {
+            segments.push(currentSegment);
+            currentSegment = { x: [], y: [] };
+          }
+        }
+        
+        // Add point to current segment
+        currentSegment.x.push(xValues[i]);
+        currentSegment.y.push(yValues[i]);
+      }
+      
+      // Add the last segment if it has points
+      if (currentSegment.x.length > 0) {
+        segments.push(currentSegment);
+      }
+      
+      return segments;
     }
   
     getGroupSensorMap() {
