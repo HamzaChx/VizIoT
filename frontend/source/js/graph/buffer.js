@@ -9,46 +9,50 @@ const eventCache = new WeakMap();
  * @param {Array} newGraphData - Array of new data points.
  */
 export function updateSensorBuffers(newGraphData) {
-  const maxBufferSize = 300;
+  if (!newGraphData || newGraphData.length === 0) return;
+  
+  const sensorData = {};
 
-  newGraphData.forEach(
-    ({
-      sensorId,
-      sensorName,
-      originalValue,
-      x,
-      y,
-      group,
-      group_min,
-      group_max,
-    }) => {
-      if (!sensorBuffers[sensorId]) {
-        sensorBuffers[sensorId] = {
-          x: [],
-          y: [],
-          values: [],
-          sensorName,
-          group,
-          groupBounds: {
-            group_min,
-            group_max,
-          },
-        };
-      }
-
-      const buffer = sensorBuffers[sensorId];
-
-      buffer.x.push(x);
-      buffer.y.push(y);
-      buffer.values.push(originalValue);
-
-      if (buffer.x.length > maxBufferSize) {
-        buffer.x.splice(0, buffer.x.length - maxBufferSize);
-        buffer.y.splice(0, buffer.y.length - maxBufferSize);
-        buffer.values.splice(0, buffer.values.length - maxBufferSize);
-      }
+  newGraphData.forEach(dataPoint => {
+    const { sensorId } = dataPoint;
+    if (!sensorData[sensorId]) {
+      sensorData[sensorId] = [];
     }
-  );
+    sensorData[sensorId].push(dataPoint);
+  });
+  
+  Object.entries(sensorData).forEach(([sensorId, dataPoints]) => {
+    dataPoints.sort((a, b) => a.x - b.x);
+    
+    const firstPoint = dataPoints[0];
+
+    if (!sensorBuffers[sensorId]) {
+      sensorBuffers[sensorId] = {
+        x: [],
+        y: [],
+        values: [],
+        sensorName: firstPoint.sensorName,
+        group: firstPoint.group,
+        groupBounds: {
+          group_min: firstPoint.group_min,
+          group_max: firstPoint.group_max,
+        },
+      };
+    }
+    
+    const buffer = sensorBuffers[sensorId];
+    
+    buffer.x = dataPoints.map(point => point.x);
+    buffer.y = dataPoints.map(point => point.y);
+    buffer.values = dataPoints.map(point => point.originalValue);
+    
+    buffer.sensorName = firstPoint.sensorName;
+    buffer.group = firstPoint.group;
+    buffer.groupBounds = {
+      group_min: firstPoint.group_min,
+      group_max: firstPoint.group_max,
+    };
+  });
 }
 
 /**
