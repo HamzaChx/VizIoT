@@ -85,9 +85,7 @@ export function showCombinedModal(eventInfo, sensors) {
                       <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#event-tab">Event</button>
                   </li>
                   <li class="nav-item ${!hasAnnotations ? 'd-none' : ''}" id="annotations-tab-item">
-                      <button class="nav-link" data-bs-toggle="tab" data-bs-target="#annotations-tab">
-                          Annotations <span class="mx-1 badge bg-secondary rounded-pill" id="annotations-count"></span>
-                      </button>
+                      <button class="nav-link" data-bs-toggle="tab" data-bs-target="#annotations-tab">Annotations</button>
                   </li>
               ` : ''}
               ${sensors.length > 0 ? `

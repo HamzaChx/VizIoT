@@ -37,7 +37,7 @@
 
 .modal-body {
   overflow-y: auto;
-  max-height: calc(80vh - 7.5rem); /* Account for header height */
+  max-height: calc(80vh - 7.5rem);
 }
 
 .modal-draggable {
@@ -84,11 +84,12 @@
   transition: opacity 0.2s ease;
 }
 
-#new-events-message {
-  z-index: 1050;
-  transition: opacity 0.5s ease-in-out;
+.toast {
+  background-color: white !important;
+  opacity: 1 !important;
 }
 
-#new-events-message.fade-out {
-  opacity: 0;
+.toast.showing,
+.toast.show {
+  opacity: 1 !important;
 }

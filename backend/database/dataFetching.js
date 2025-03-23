@@ -146,7 +146,6 @@ export async function getFirstAvailableTimestamp(db) {
     `);
     
     if (result && result.first_timestamp) {
-      console.log("First available timestamp in database:", result.first_timestamp);
       return result.first_timestamp;
     } else {
       console.log("No timestamps found in database, using default");

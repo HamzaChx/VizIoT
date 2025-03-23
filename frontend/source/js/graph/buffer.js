@@ -3,6 +3,7 @@ import appState from "../state.js";
 let sensorBuffers = {};
 let eventBuffer = [];
 const eventCache = new WeakMap();
+const TIME_WINDOW = 30;
 
 /**
  * Updates the buffers with incoming graph data.
@@ -11,8 +12,12 @@ const eventCache = new WeakMap();
 export function updateSensorBuffers(newGraphData) {
   if (!newGraphData || newGraphData.length === 0) return;
   
-  const sensorData = {};
+  const latestTimestamp = newGraphData.reduce((latest, point) => 
+    Math.max(latest, point.x), -Infinity);
+  
+  const minTimestampToKeep = latestTimestamp - TIME_WINDOW - 2;
 
+  const sensorData = {};
   newGraphData.forEach(dataPoint => {
     const { sensorId } = dataPoint;
     if (!sensorData[sensorId]) {
@@ -25,7 +30,7 @@ export function updateSensorBuffers(newGraphData) {
     dataPoints.sort((a, b) => a.x - b.x);
     
     const firstPoint = dataPoints[0];
-
+    
     if (!sensorBuffers[sensorId]) {
       sensorBuffers[sensorId] = {
         x: [],
@@ -42,10 +47,41 @@ export function updateSensorBuffers(newGraphData) {
     
     const buffer = sensorBuffers[sensorId];
     
-    buffer.x = dataPoints.map(point => point.x);
-    buffer.y = dataPoints.map(point => point.y);
-    buffer.values = dataPoints.map(point => point.originalValue);
+    let mergedX = [...buffer.x];
+    let mergedY = [...buffer.y];
+    let mergedValues = [...buffer.values];
+
+    dataPoints.forEach(point => {
+      const existingIndex = mergedX.findIndex(x => Math.abs(x - point.x) < 0.001);
+      if (existingIndex >= 0) {
+        mergedX[existingIndex] = point.x;
+        mergedY[existingIndex] = point.y;
+        mergedValues[existingIndex] = point.originalValue;
+      } else {
+        mergedX.push(point.x);
+        mergedY.push(point.y);
+        mergedValues.push(point.originalValue);
+      }
+    });
     
+    const indicesToKeep = [];
+    for (let i = 0; i < mergedX.length; i++) {
+      if (mergedX[i] >= minTimestampToKeep) {
+        indicesToKeep.push(i);
+      }
+    }
+    
+    buffer.x = indicesToKeep.map(i => mergedX[i]);
+    buffer.y = indicesToKeep.map(i => mergedY[i]);
+    buffer.values = indicesToKeep.map(i => mergedValues[i]);
+    
+    const sortIndices = buffer.x.map((x, i) => i)
+      .sort((a, b) => buffer.x[a] - buffer.x[b]);
+    
+    buffer.x = sortIndices.map(i => buffer.x[i]);
+    buffer.y = sortIndices.map(i => buffer.y[i]);
+    buffer.values = sortIndices.map(i => buffer.values[i]);
+
     buffer.sensorName = firstPoint.sensorName;
     buffer.group = firstPoint.group;
     buffer.groupBounds = {

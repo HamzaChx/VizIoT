@@ -2,7 +2,7 @@ import { cleanupUnusedSensors, updateEventBuffer, updateSensorBuffers } from "./
 import { formatDateWithOffset } from "../../../utils/utilities.js";
 import appState from "./state.js";
 
-export function showNewEventsMessage(count) {
+export function showNewEventsMessage(count, duration = 1500) {
   const messageElement = document.getElementById('new-events-message');
   const messageText = messageElement.querySelector('small');
   
@@ -15,7 +15,7 @@ export function showNewEventsMessage(count) {
       messageElement.classList.add('d-none');
       messageElement.classList.remove('fade-out');
     }, 500);
-  }, 1500);
+  }, duration);
 }
 
 export function showToast(type, title, message) {

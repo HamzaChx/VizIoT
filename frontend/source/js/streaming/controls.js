@@ -93,12 +93,25 @@ export function initializeControls() {
   });
 
   document.getElementById("play-button").addEventListener("click", () => {
+
     if (!appState.streaming.eventSource || !appState.streaming.isPaused) {
+      if (appState.graph.manager) {
+        appState.graph.manager.reset();
+        
+        if (appState.graph.manager.renderer) {
+          appState.graph.manager.renderer.previousWindow = { xMin: 0, xMax: 30 };
+          appState.graph.manager.renderer.previousLatestX = undefined;
+        }
+      }
+      
+      appState.reset("streaming");
+      
       appState.sensors.limit = parseInt(slider.value);
       startSlidingWindowStream("example-canvas");
+      
       return;
     }
-
+  
     if (appState.streaming.isPaused) {
       resumeStream(parseInt(slider.value));
     }

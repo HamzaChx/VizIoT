@@ -39,13 +39,11 @@ export default class GraphRenderer {
   }
 
   calculateVisibleWindow(buffers) {
-    // Find the latest timestamp across all sensor buffers
     const latestX = Object.values(buffers).reduce((latest, { x }) => {
       if (!x || x.length === 0) return latest;
       return Math.max(latest, x[x.length - 1]);
     }, -Infinity);
     
-    // If no data points found, return previous window
     if (latestX === -Infinity) {
       return this.previousWindow;
     }
@@ -54,14 +52,12 @@ export default class GraphRenderer {
         latestX - this.previousLatestX < this.updateThreshold) {
       return this.previousWindow;
     }
-    
-    // Create new sliding window
+
     const newWindow = {
       xMin: latestX - this.windowDuration,
       xMax: latestX
     };
     
-    // Update state for next comparison
     this.previousLatestX = latestX;
     this.previousWindow = newWindow;
     
@@ -136,4 +132,11 @@ export default class GraphRenderer {
       this.gr.polyline(points.x.length, points.x, points.y);
     }
   }
+
+  reset() {
+    this.previousWindow = { xMin: 0, xMax: 30 };
+    this.previousLatestX = undefined;
+    this.clear();
+  }
+
 }
