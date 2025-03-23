@@ -1,5 +1,9 @@
 import { showCombinedModal } from "../components/modal.js";
 import appState from "../state.js";
+import {
+  formatDateWithOffset,
+  formatReadableDate,
+} from "../../../../utils/utilities.js";
 
 /**
  * Handles canvas click events to display sensor information in a modal and highlight the clicked line.
@@ -14,28 +18,31 @@ export async function handleCanvasClick(event, graphManager) {
   const rawY = event.clientY - rect.top;
 
   const graphX = rawX / rect.width;
-  
-  const graphY = 1 - (rawY / rect.height) - graphManager.renderer.viewportSettings.yMin;
-  
+
+  const graphY =
+    1 - rawY / rect.height - graphManager.renderer.viewportSettings.yMin;
+
   appState.update("ui", { lastClickY: graphY });
-  
+
   const timestamp = translateXToTimestamp(graphX, graphManager);
   const eventInfo = getEventAtTimestamp(timestamp, graphManager);
   const sensors = getSensorsInRegion(timestamp, graphManager, graphY);
-  
+
   graphManager.highlightedEvent = eventInfo;
   graphManager.highlightedSensors = sensors.map((s) => s.sensorId);
   graphManager.requestRedraw();
-  
+
   if (appState.debug?.showClickMarkers) {
     graphManager.drawDebugMarker(timestamp, graphY);
     graphManager.requestRedraw();
   }
-  
+
   if (eventInfo || sensors.length > 0) {
     try {
       if (eventInfo) {
-        const response = await fetch(`/api/annotations/${eventInfo.timestamp_id}`);
+        const response = await fetch(
+          `/api/annotations/${eventInfo.timestamp_id}`
+        );
         if (response.ok) {
           const annotations = await response.json();
           eventInfo.annotations = annotations;
@@ -73,18 +80,18 @@ function translateXToTimestamp(normalizedX, graphManager) {
 function getSensorsInRegion(timestamp, graphManager, graphY) {
   const buffers = graphManager.getSensorBuffers();
   const results = [];
-  
+
   if (!Object.keys(buffers).length) return results;
 
   const xTolerance = 0.5;
   const yTolerance = 0.025;
-  
+
   Object.entries(buffers).forEach(([sensorId, data]) => {
     if (!data.x || !data.x.length || !data.y || !data.y.length) return;
-    
+
     let closestPointIdx = -1;
     let closestXDist = Infinity;
-    
+
     for (let i = 0; i < data.x.length; i++) {
       const dist = Math.abs(data.x[i] - timestamp);
       if (dist < closestXDist) {
@@ -95,28 +102,30 @@ function getSensorsInRegion(timestamp, graphManager, graphY) {
 
     if (closestPointIdx !== -1 && closestXDist <= xTolerance) {
       const pointY = data.y[closestPointIdx];
-      
+
       const yDist = Math.abs(pointY - graphY);
-      
+
       if (yDist <= yTolerance) {
-        const value = closestPointIdx < data.values?.length 
-          ? data.values[closestPointIdx] 
-          : "N/A";
-        
-        const date = new Date(timestamp * 1000 + appState.streaming.startTime).toLocaleString();
-        
+        const value =
+          closestPointIdx < data.values?.length
+            ? data.values[closestPointIdx]
+            : "N/A";
+
+        const date = new Date(timestamp * 1000 + appState.streaming.startTime);
+        const readableTimestamp = formatReadableDate(date);
+
         results.push({
           sensorId,
           sensorName: data.sensorName || "Unknown",
           value,
-          timestamp: date,
+          timestamp: readableTimestamp,
           group: data.group,
-          distance: yDist
+          distance: yDist,
         });
       }
     }
   });
-  
+
   return results.sort((a, b) => a.distance - b.distance);
 }
 

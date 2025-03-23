@@ -127,7 +127,6 @@ router.get("/window", async (req, res) => {
     res.setHeader("Connection", "keep-alive");
 
     const limit = parseInt(req.query.limit, 10) || 1;
-    // const startTime =  new Date("2023-04-28T17:18:23.00+02:00");
     const firstTimestamp = await getFirstAvailableTimestamp(db);
     const startTime = new Date(firstTimestamp);
 

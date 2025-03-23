@@ -1,5 +1,5 @@
 import { initializeTabs } from "./tabs.js";
-import { formatDateWithOffset } from "../../../utils/utilities.js";
+import { formatDateWithOffset, formatReadableDate } from "../../../utils/utilities.js";
 import { renderAnnotationsList } from "./annotations.js";
 import appState from "../state.js";
 
@@ -140,7 +140,7 @@ export function renderEventContent(eventInfo) {
               </div>
               <div class="col-6">
                   <small class="text-muted">Time</small>
-                  <div class="fw-bold">${date.toLocaleString()}</div>
+                  <div class="fw-bold">${formatReadableDate(date)}</div>
               </div>
           </div>
           <div class="mt-3">
