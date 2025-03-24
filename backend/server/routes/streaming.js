@@ -24,6 +24,29 @@ router.get("/config", (req, res) => {
 });
 
 /**
+ * Update streaming configuration
+ * @route PUT /api/streaming/config
+ */
+router.put("/config", (req, res) => {
+  const { slidingWindowDuration, windowIncrement, streamInterval } = req.body;
+
+  if (
+    typeof slidingWindowDuration !== "number" ||
+    typeof windowIncrement !== "number" ||
+    typeof streamInterval !== "number"
+  ) {
+    return res.status(400).send("Invalid configuration values");
+  }
+
+  SLIDING_WINDOW_CONFIG.slidingWindowDuration = slidingWindowDuration;
+  SLIDING_WINDOW_CONFIG.windowIncrement = windowIncrement;
+  SLIDING_WINDOW_CONFIG.streamInterval = streamInterval;
+
+  res.status(200).send("Configuration updated");
+});
+
+
+/**
  * Update sensor limit for all active streams
  * @route PUT /api/streaming/limit
  */
@@ -152,6 +175,61 @@ router.get("/window", async (req, res) => {
     console.error(`Error initializing database: ${error.message}`);
     res.status(500).send("Failed to initialize database");
   }
+});
+
+/**
+* Rewind to a specific timestamp offset
+* @route PUT /api/streaming/rewind
+*/
+router.put("/rewind", async (req, res) => {
+ try {
+   const { offsetSeconds } = req.body;
+   
+   if (typeof offsetSeconds !== "number" || offsetSeconds < 0) {
+     return res.status(400).send("Invalid time offset");
+   }
+   
+   const stream = Array.from(activeStreams.keys()).find(
+     (stream) => stream.req.ip === req.ip
+   );
+   
+   if (!stream) {
+     return res.status(404).send("Stream not found");
+   }
+   
+   const db = await initializeDatabase();
+   const firstTimestamp = await getFirstAvailableTimestamp(db);
+   const baseStartTime = new Date(firstTimestamp);
+   
+   const targetTime = new Date(baseStartTime.getTime() + (offsetSeconds * 1000));
+   
+   const streamData = activeStreams.get(stream);
+   streamData.isPaused = false;
+   streamData.initialFetch = true;
+   
+   if (streamData.fetchIntervalId) {
+     clearInterval(streamData.fetchIntervalId);
+   }
+   
+   startSlidingWindowStream(
+     stream,
+     await initializeDatabase(),
+     SLIDING_WINDOW_CONFIG,
+     targetTime,
+     streamData
+   );
+   
+   stream.write(`event: rewind\ndata: ${JSON.stringify({ 
+     originalStartTime: baseStartTime.toISOString(),
+     targetTime: targetTime.toISOString(),
+     offsetSeconds
+   })}\n\n`);
+   
+   res.status(200).send("Stream position updated");
+ } catch (error) {
+   console.error("Error updating stream position:", error);
+   res.status(500).send("Failed to update stream position");
+ }
 });
 
 export default router;

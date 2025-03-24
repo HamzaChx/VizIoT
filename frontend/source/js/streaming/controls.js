@@ -1,6 +1,6 @@
 import appState from "../state.js";
 import { updateSensorCount, showToast } from "../utils.js";
-import { startSlidingWindowStream, stopSlidingWindowStream, resumeStream } from "./streamHandler.js";
+import { startSlidingWindowStream, stopSlidingWindowStream, resumeStream, rewindStream } from "./streamHandler.js";
 
 const slider = document.getElementById("sensor-slider");
 
@@ -120,6 +120,21 @@ export function initializeControls() {
   document.getElementById("stop-button").addEventListener("click", () => {
     stopSlidingWindowStream();
   });
+
+
+  document.getElementById("rewind-button").addEventListener("click", () => {
+    const rewindTimeInput = document.getElementById("rewind-time");
+    const offsetSeconds = parseInt(rewindTimeInput.value) || 0;
+    
+    if (offsetSeconds < 0) {
+      rewindTimeInput.value = "0";
+      showToast("warning", "Invalid Time", "Please enter a positive number of seconds");
+      return;
+    }
+    
+    rewindStream(offsetSeconds);
+  });
+
 }
 
 /**

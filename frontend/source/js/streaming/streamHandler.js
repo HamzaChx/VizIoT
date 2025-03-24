@@ -3,6 +3,8 @@ import {
   updateEventBuffer,
   updateSensorBuffers,
   cleanupUnusedSensors,
+  clearSensorBuffers,
+  clearEventBuffer,
 } from "../graph/buffer.js";
 import { showToast } from "../utils.js";
 import { formatDateWithOffset } from "../../../../utils/utilities.js";
@@ -17,7 +19,6 @@ const MAX_RETRY_ATTEMPTS = 2;
  */
 export function startSlidingWindowStream(canvasId) {
   if (appState.streaming.eventSource && !appState.streaming.isPaused) {
-    console.log("Sliding window stream already active.");
     return;
   }
 
@@ -45,6 +46,37 @@ export function startSlidingWindowStream(canvasId) {
 
   eventSource.onmessage = handleStreamMessage;
   eventSource.onerror = handleStreamError;
+
+  eventSource.addEventListener("rewind", (event) => {
+    const { originalStartTime, targetTime, offsetSeconds } = JSON.parse(event.data);
+    
+    clearSensorBuffers();
+    clearEventBuffer();
+    
+    if (appState.graph.manager) {
+      appState.graph.manager.reset();
+      
+      if (appState.graph.manager.renderer) {
+        appState.graph.manager.renderer.previousWindow = { 
+          xMin: Math.max(0, offsetSeconds - 30), 
+          xMax: offsetSeconds
+        };
+        appState.graph.manager.renderer.previousLatestX = offsetSeconds;
+      }
+      
+      appState.graph.manager.initialize();
+      appState.graph.manager.startDrawing();
+    }
+    
+    const originalStartDate = new Date(originalStartTime);
+    appState.update("streaming", {
+      startTime: originalStartDate.getTime(),
+      isPaused: false,
+      lastTimestamp: targetTime
+    });
+    
+    showToast("success", "Stream Position Updated", `Viewing data at ${offsetSeconds} seconds from start`);
+  });
 
   eventSource.addEventListener("close", () => {
     if (appState.streaming.eventSource) {
@@ -237,4 +269,34 @@ function handleStreamError() {
       "Failed to reconnect to data stream after multiple attempts"
     );
   }
+}
+
+/**
+ * Rewind the stream to a specific time offset
+ * @param {number} offsetSeconds - Number of seconds to offset from start
+ */
+export function rewindStream(offsetSeconds) {
+  if (!appState.streaming.eventSource) {
+    showToast("warning", "No Active Stream", "Start streaming first before changing position.");
+    return;
+  }
+  
+  offsetSeconds = Math.max(0, parseInt(offsetSeconds) || 0);
+  
+  fetch("/api/streaming/rewind", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ offsetSeconds }),
+  })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error("Failed to update stream position");
+      }
+    })
+    .catch(error => {
+      console.error("Error changing stream position:", error);
+      showToast("danger", "Error", "Failed to update stream position");
+    });
 }
