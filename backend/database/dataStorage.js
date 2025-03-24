@@ -27,14 +27,13 @@ const labelEncode = (() => {
     }
 
     const encodedValue = sensorMap.get(normalizedValue);
-    
-    // Calculate normalized value (0 to 1 range)
+
     const totalValues = sensorMap.size;
     const normalized = totalValues > 1 ? encodedValue / (totalValues - 1) : 0;
 
     return {
       encoded: encodedValue,
-      normalized: normalized, // Use the properly normalized value directly
+      normalized: normalized,
     };
   };
 })();
@@ -42,12 +41,12 @@ const labelEncode = (() => {
 export async function storeSensorData(sensorData) {
   const db = await initializeDatabase();
   const binaryMapping = {
-    "closed": 0,
-    "opened": 1,
-    "true": 1,
-    "false": 0,
-    "active": 1,
-    "inactive": 0,
+    closed: 0,
+    opened: 1,
+    true: 1,
+    false: 0,
+    active: 1,
+    inactive: 0,
   };
   const parseBinary = (value) => binaryMapping[value?.toLowerCase()] ?? null;
 
@@ -69,7 +68,9 @@ export async function storeSensorData(sensorData) {
       const { sensor_id, type } = sensor;
 
       let lastValidValue = null;
-      const sortedTimestamps = Object.entries(dataPoints).sort(([a], [b]) => new Date(a) - new Date(b));
+      const sortedTimestamps = Object.entries(dataPoints).sort(
+        ([a], [b]) => new Date(a) - new Date(b)
+      );
 
       for (const [timestamp, rawValue] of sortedTimestamps) {
         let processedValue = null;
@@ -94,12 +95,7 @@ export async function storeSensorData(sensorData) {
           await insertOrUpdate(
             db,
             `INSERT OR REPLACE INTO SensorData (sensor_id, timestamp, value, original_value) VALUES (?, ?, ?, ?)`,
-            [
-              sensor_id,
-              timestamp,
-              valueToStore,
-              rawValue
-            ]
+            [sensor_id, timestamp, valueToStore, rawValue]
           );
         }
       }
@@ -117,7 +113,7 @@ export async function populateNormalizedValues() {
     `);
 
     for (const { sensor_id, type } of sensors) {
-      if (type === 'boolean') {
+      if (type === "boolean") {
         await db.run(
           `UPDATE SensorData
            SET normalized_value = CASE 
@@ -218,12 +214,18 @@ export async function storeSensorEvents(processEvents) {
           [event_id, timestamp]
         );
 
-        await insertOrUpdate(
-          db,
-          "INSERT OR IGNORE INTO EventAnnotations (timestamp_id, annotation) VALUES (?, ?)",
-          [event_id, annotation]
+        const { timestamp_id } = await db.get(
+          "SELECT timestamp_id FROM EventTimestamps WHERE event_id = ? AND timestamp = ?",
+          [event_id, timestamp]
         );
 
+        if (timestamp_id) {
+          await insertOrUpdate(
+            db,
+            "INSERT OR IGNORE INTO EventAnnotations (timestamp_id, annotation) VALUES (?, ?)",
+            [timestamp_id, annotation]
+          );
+        }
       }
     }
   });
