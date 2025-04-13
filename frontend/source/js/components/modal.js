@@ -129,7 +129,7 @@ export function renderEventContent(eventInfo) {
       <div class="list-group-item">
           <div class="row">
               <div>
-                  <small class="text-muted">Event Name</small>
+                  <small class="text-muted">Sensor Name</small>
                   <div class="fw-bold">${eventInfo.name}</div>
               </div>
           </div>

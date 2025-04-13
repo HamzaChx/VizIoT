@@ -1,7 +1,6 @@
 import { showCombinedModal } from "../components/modal.js";
 import appState from "../state.js";
 import {
-  formatDateWithOffset,
   formatReadableDate,
 } from "../../../../utils/utilities.js";
 
@@ -11,6 +10,9 @@ import {
  * @param {Object} graphManager - An instance of GraphManager.
  */
 export async function handleCanvasClick(event, graphManager) {
+  event.preventDefault();
+  event.stopPropagation();
+  
   const rect = graphManager.getBoundingClientRect();
   if (!rect) return;
 

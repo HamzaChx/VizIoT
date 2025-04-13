@@ -20,7 +20,6 @@ export default class GraphRenderer {
       GR.ready(() => {
         this.gr = new GR(this.canvasId);
         this.gr.clearws();
-        this.gr.setcolormap(3);
         this.setViewport();
         resolve();
       });

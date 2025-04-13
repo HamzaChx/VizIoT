@@ -10,12 +10,16 @@ export default class EventPlotter {
     plotEventLines(renderer, events, range) {
       if (!events.length || !renderer || !range) return;
       
-      const { xMin, xMax } = range;
+      const extendedRange = {
+        xMin: range.xMin - 5,
+        xMax: range.xMax
+      };
+      
+      const { xMin, xMax } = extendedRange;
       
       const importantEvents = [];
       const newEvents = [];
       const regularEvents = [];
-      const annotatedEvents = [];
       
       events.forEach(event => {
         if (event.x < xMin || event.x > xMax) return;
@@ -32,8 +36,6 @@ export default class EventPlotter {
       
       this.batchRenderEvents(renderer, regularEvents, 1, 3, 
         this.eventHeights.regular.start, this.eventHeights.regular.end);
-
-      // this.batchRenderAnnotatedEvents(renderer, annotatedEvents);
 
       renderer.setLineProperties(1, 1, 1);
     }

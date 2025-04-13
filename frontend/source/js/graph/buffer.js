@@ -129,21 +129,24 @@ export function cleanupUnusedSensors(activeSensorIds) {
 export function updateEventBuffer(events) {
   if (!events || !appState.streaming.startTime) return;
 
-  if (events.length === eventBuffer.length) {
-    let needsUpdate = false;
-    for (let i = 0; i < events.length; i++) {
-      if (events[i].event_id !== eventBuffer[i].event_id) {
-        needsUpdate = true;
-        break;
-      }
-    }
-    if (!needsUpdate) return;
-  }
-  eventBuffer = events.map((event) => {
-    let processed = eventCache.get(event);
-    if (!processed) {
-      processed = {
-        x: (Date.parse(event.timestamp) - appState.streaming.startTime) / 1000,
+  const existingEvents = [...eventBuffer];
+  const mergedEvents = [...existingEvents];
+  
+  events.forEach(event => {
+    const x = (Date.parse(event.timestamp) - appState.streaming.startTime) / 1000;
+    const existingIdx = existingEvents.findIndex(e => 
+      e.timestamp_id === event.timestamp_id
+    );
+    
+    if (existingIdx >= 0) {
+      mergedEvents[existingIdx] = {
+        ...mergedEvents[existingIdx],
+        isImportant: event.is_important,
+        isNew: event.is_new
+      };
+    } else {
+      let processed = {
+        x: x,
         name: event.event_name,
         ranking: event.ranking,
         sensorId: event.sensor_id,
@@ -153,10 +156,10 @@ export function updateEventBuffer(events) {
         isNew: event.is_new,
       };
       eventCache.set(event, processed);
+      mergedEvents.push(processed);
     }
-    return processed;
   });
-  
+  eventBuffer = mergedEvents.sort((a, b) => a.x - b.x);
 }
 
 /**
