@@ -153,7 +153,6 @@ export default class GraphManager {
       groupSensorMap: this.sensorPlotter.getGroupSensorMap(),
     });
 
-    // Update the legend
     updateLegend(
       groupColorMap,
       appState.sensors.groupSensorMap,

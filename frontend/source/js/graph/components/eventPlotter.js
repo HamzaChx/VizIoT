@@ -28,7 +28,7 @@ export default class EventPlotter {
         else regularEvents.push(event);
       });
   
-      this.batchRenderEvents(renderer, importantEvents, 2, 1, 
+      this.batchRenderEvents(renderer, importantEvents, 1, 1, 
         this.eventHeights.important.start, this.eventHeights.important.end);
       
       this.batchRenderEvents(renderer, newEvents, 1, -6, 

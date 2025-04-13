@@ -135,6 +135,22 @@ export function initializeControls() {
     rewindStream(offsetSeconds);
   });
 
+  document.getElementById("rewind-time").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      const rewindTimeInput = document.getElementById("rewind-time");
+      const offsetSeconds = parseInt(rewindTimeInput.value) || 0;
+      
+      if (offsetSeconds < 0) {
+        rewindTimeInput.value = "0";
+        showToast("warning", "Invalid Time", "Please enter a positive number of seconds");
+        return;
+      }
+      
+      rewindStream(offsetSeconds);
+    }
+  });
+
 }
 
 /**
