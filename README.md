@@ -10,6 +10,36 @@ The rapid proliferation of IoT technologies has resulted in an abundance of sens
 
 The application bridges the gap between raw IoT sensor data and process events, making it easier to identify key events, observe trends, and gain actionable insights into process workflows.
 
+## Research Context
+
+**VizIoT** is developed as part of a bachelor’s thesis titled "Exploring IoT Process Events through Interactive Visualization" at the Technical University of Munich, under the Chair of Information Systems and Business Process Management. The thesis builds upon the framework proposed by [Mangler et al. (2024)](https://arxiv.org/abs/2405.08528) , which addresses the lack of "process awareness" in IoT sensor data.
+
+### Motivation
+
+We want to mine process events from sensor streams.
+We assume that value changes that occur together in many parallel running sensor streams signify important process events in these sensor streams.
+
+Therefore, a file format was created that contains for certain timestamps, which sensors changed together.
+
+As said before, timestamps with many sensors contributing to a change are deemed more important.
+
+For this thesis, we created a visualization tool in the spirit of Celonis (we have a slider!) that shows you the sensor values that are most important (i.e., the ones that most probably signify process events with their changes), where we can gradually unhide less important sensor values (with the slider!) to explore the timeline.
+
+Our tool also allows to mark and annotate timestamps/events/sensors to save our thoughts and findings.
+
+Our tool is supposed to be used by experts who know the meaning of the sensors and the changes together. It is supposed to make their life easier by hiding parts of complex sensor streams and to allow them to concentrate on the important parts.
+
+
+### Methodology
+
+The thesis adopts the Design Science Research Methodology (DSRM), focusing on the development of a practical and innovative artifact to address real-world challenges. **VizIoT** embodies this artifact, providing an intuitive and efficient interface for exploring IoT data and empowering users to gain actionable insights.
+
+### Research Questions Addressed:
+
+1. What are the current best practices and methodologies in IoT event data visualization?
+2. How can process events be efficiently visualized in a structured IoT sensor data stream to facilitate process monitoring and analysis?
+3. How can the effectiveness of the application be evaluated in detecting significant events within IoT sensor data streams?
+
 ## Key Features
 
 - **Interactive Real-time Visualization**: Displays the flow of events in an IoT process, with dynamic updating of sensor data streams and automatic sliding window.
@@ -17,7 +47,6 @@ The application bridges the gap between raw IoT sensor data and process events, 
 - **Importance Marking**: Flag important events for prioritized attention and easier future reference.
 - **Sensor Selection and Filtering**: Control the number of sensors shown in the visualization to focus on relevant data.
 - **Playback Controls**: Play, pause, and rewind functionality for reviewing past data.
-<!-- - **Multi-dataset Support**: Switch between different sensor log databases. -->
 - **Color-coded Groups**: Automatically organized and color-coded sensor groupings for better visual organization.
 - **Responsive UI**: Built with Bootstrap for a clean, responsive interface across different devices.
 
@@ -27,25 +56,6 @@ The application bridges the gap between raw IoT sensor data and process events, 
 - **Database**: SQLite
 - **Frontend**: Vanilla JavaScript with Bootstrap as UI library
 - **Visualization Framework**: GR Framework ([https://gr-framework.org](https://gr-framework.org))
-
-## Research Context
-
-**VizIoT** is developed as part of a bachelor’s thesis titled "Exploring IoT Process Events through Interactive Visualization" at the Technical University of Munich, under the Chair of Information Systems and Business Process Management. The thesis builds upon the framework proposed by Mangler et al. (2024), which addresses the lack of "process awareness" in IoT sensor data.
-
-IoT technologies generate vast amounts of sensor data, but their high complexity and volume often obscure meaningful insights. Traditional methods struggle with real-time, event-based data, especially for non-technical users. This research aims to bridge this gap by transforming raw IoT sensor data into comprehensible process events through interactive visualization.
-
-Key objectives include:
-- Enhancing process awareness in IoT environments by visualizing event streams from IoT sensors.
-- Supporting experts in detecting, analyzing, and monitoring workflows and significant events in real time.
-- Aligning with Industry 4.0 principles to enable smarter, more autonomous manufacturing processes.
-
-The thesis adopts the Design Science Research Methodology (DSRM), focusing on the development of a practical and innovative artifact to address real-world challenges. **VizIoT** embodies this artifact, providing an intuitive and efficient interface for exploring IoT data and empowering users to gain actionable insights.
-
-### Research Questions Addressed:
-
-1. What are the current best practices and methodologies in IoT event data visualization?
-2. How can process events be efficiently visualized in a structured IoT sensor data stream to facilitate process monitoring and analysis?
-3. How can the effectiveness of the application be evaluated in detecting significant events within IoT sensor data streams?
 
 ## Project Structure
 
