@@ -1,4 +1,4 @@
-# VizIoT
+# VizIoT 📊
 
 **VizIoT** is an interactive web-based application designed to visualize Internet of Things (IoT) sensor event streams, enabling experts and researchers to explore, monitor, and analyze IoT-driven processes with enhanced process awareness.
 
@@ -10,7 +10,7 @@ The rapid proliferation of IoT technologies has resulted in an abundance of sens
 
 The application bridges the gap between raw IoT sensor data and process events, making it easier to identify key events, observe trends, and gain actionable insights into process workflows.
 
-## Research Context
+## Research Context 🎓
 
 **VizIoT** is developed as part of a bachelor’s thesis titled "Exploring IoT Process Events through Interactive Visualization" at the Technical University of Munich, under the Chair of Information Systems and Business Process Management. The thesis builds upon the framework proposed by [Mangler et al. (2024)](https://arxiv.org/abs/2405.08528) , which addresses the lack of "process awareness" in IoT sensor data.
 
@@ -40,7 +40,7 @@ The thesis adopts the Design Science Research Methodology (DSRM), focusing on th
 2. How can process events be efficiently visualized in a structured IoT sensor data stream to facilitate process monitoring and analysis?
 3. How can the effectiveness of the application be evaluated in detecting significant events within IoT sensor data streams?
 
-## Key Features
+## Key Features 🌟
 
 - **Interactive Real-time Visualization**: Displays the flow of events in an IoT process, with dynamic updating of sensor data streams and automatic sliding window.
 - **Event Annotation System**: Add, view, and manage annotations for significant events to document insights and observations.
@@ -57,7 +57,7 @@ The thesis adopts the Design Science Research Methodology (DSRM), focusing on th
 - **Frontend**: Vanilla JavaScript with Bootstrap as UI library
 - **Visualization Framework**: GR Framework ([https://gr-framework.org](https://gr-framework.org))
 
-## Project Structure
+## Project Structure 🗂️
 
 The application follows a modular architecture:
 
@@ -95,7 +95,7 @@ The application follows a modular architecture:
   - `evaluation.db`: Smart Home dataset
   - `sensor_logs.db`: Chess Production dataset
 
-## User Guide
+## User Guide 📖
 
 ### Visualization Controls
 
