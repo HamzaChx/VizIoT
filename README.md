@@ -2,7 +2,7 @@
 
 **VizIoT** is an interactive web-based application designed to visualize Internet of Things (IoT) sensor event streams, enabling experts and researchers to explore, monitor, and analyze IoT-driven processes with enhanced process awareness.
 
-![VizIoT Interface](utils\cpp.png)
+![VizIoT Interface](utils/cpp.png)
 
 ## Overview
 
