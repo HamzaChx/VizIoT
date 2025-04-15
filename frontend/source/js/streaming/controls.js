@@ -4,6 +4,78 @@ import { startSlidingWindowStream, stopSlidingWindowStream, resumeStream, rewind
 import { clearSensorBuffers, clearEventBuffer } from "../graph/buffer.js";
 
 const slider = document.getElementById("sensor-slider");
+const DEFAULT_STREAM_INTERVAL = 80;
+
+/**
+ * Changes the streaming speed by updating the streamInterval configuration
+ * @param {number} speedFactor - Factor to multiply/divide the default speed (0.5, 1, or 2)
+ */
+async function changeStreamSpeed(speedFactor) {
+  try {
+    // Calculate new interval - higher interval = slower speed
+    const newInterval = Math.round(DEFAULT_STREAM_INTERVAL / speedFactor);
+    
+    const response = await fetch("/api/streaming/config", {
+      method: "PUT", 
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        streamInterval: newInterval,
+        slidingWindowDuration: 30 * 1000, // Keep original value
+        windowIncrement: 500 // Keep original value
+      })
+    });
+    
+    if (response.ok) {
+      // Also send a command to update the speed of the current stream
+      if (appState.streaming.eventSource && !appState.streaming.isPaused) {
+        await fetch("/api/streaming/speed", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ speedFactor })
+        });
+      }
+      
+      // Update speed buttons UI
+      updateSpeedButtonsUI(speedFactor);
+      showToast("info", "Speed Changed", `Streaming speed set to ${speedFactor}x`);
+    } else {
+      console.error("Failed to update stream speed");
+      showToast("danger", "Error", "Failed to update streaming speed");
+    }
+  } catch (error) {
+    console.error("Error changing stream speed:", error);
+    showToast("danger", "Error", "Failed to update streaming speed");
+  }
+}
+
+/**
+ * Updates the UI of speed buttons to reflect current selection
+ * @param {number} activeFactor - Currently active speed factor
+ */
+function updateSpeedButtonsUI(activeFactor) {
+  const speedButtons = {
+    0.5: document.getElementById("speed-half"),
+    1: document.getElementById("speed-normal"),
+    2: document.getElementById("speed-double")
+  };
+  
+  // Reset all buttons
+  Object.values(speedButtons).forEach(btn => {
+    btn.classList.remove("active", "btn-secondary");
+    btn.classList.add("btn-outline-secondary");
+  });
+  
+  // Highlight active button
+  const activeButton = speedButtons[activeFactor];
+  if (activeButton) {
+    activeButton.classList.remove("btn-outline-secondary");
+    activeButton.classList.add("active", "btn-secondary");
+  }
+}
 
 /**
  * Fetch available sensor count and update slider max value
@@ -156,8 +228,6 @@ export function initializeControls() {
         }
       }
       
-      // appState.reset("streaming");
-      
       appState.sensors.limit = parseInt(slider.value);
 
       startSlidingWindowStream("example-canvas");
@@ -202,6 +272,18 @@ export function initializeControls() {
       
       rewindStream(offsetSeconds);
     }
+  });
+
+  document.getElementById("speed-half").addEventListener("click", () => {
+    changeStreamSpeed(0.5);
+  });
+  
+  document.getElementById("speed-normal").addEventListener("click", () => {
+    changeStreamSpeed(1);
+  });
+  
+  document.getElementById("speed-double").addEventListener("click", () => {
+    changeStreamSpeed(2);
   });
 
 }

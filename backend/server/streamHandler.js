@@ -11,6 +11,7 @@ import { formatDateWithOffset } from "../../utils/utilities.js";
  * @param {Object} streamData - Stream state containing isPaused and currentLimit
  */
 export const startSlidingWindowStream = (res, db, config, startTime, streamData) => {
+  streamData.currentTime = startTime;
 
   let currentTime = startTime;
   let endTime = new Date(currentTime.getTime() + config.slidingWindowDuration);
@@ -36,6 +37,12 @@ export const startSlidingWindowStream = (res, db, config, startTime, streamData)
       } else {
         currentTime = new Date(currentTime.getTime() + config.windowIncrement);
         endTime = new Date(endTime.getTime() + config.windowIncrement);
+        streamData.currentTime = currentTime;
+        
+        if (sensorData && sensorData.length > 0) {
+          const lastPoint = sensorData[sensorData.length - 1];
+          streamData.lastProcessedTimestamp = lastPoint.timestamp;
+        }
       }
     } catch (error) {
       console.error(`Error fetching sliding window data: ${error.message}`);

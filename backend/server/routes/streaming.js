@@ -259,4 +259,91 @@ router.put("/rewind", async (req, res) => {
   }
  });
 
+/**
+* Update speed of active stream
+* @route PUT /api/streaming/speed
+*/
+router.put("/speed", async (req, res) => {
+  try {
+    const { speedFactor } = req.body;
+    
+    if (typeof speedFactor !== "number" || ![0.5, 1, 2].includes(speedFactor)) {
+      return res.status(400).send("Invalid speed factor");
+    }
+    
+    // Update the global configuration
+    SLIDING_WINDOW_CONFIG.streamInterval = Math.round(42 / speedFactor);
+    
+    const stream = Array.from(activeStreams.keys()).find(
+      (stream) => stream.req.ip === req.ip
+    );
+    
+    if (!stream) {
+      return res.status(404).send("Stream not found");
+    }
+    
+    const streamData = activeStreams.get(stream);
+    
+    // If currentTime is undefined, we need to reinitialize it
+    if (!streamData.currentTime) {
+      const db = await initializeDatabase();
+      const firstTimestamp = await getFirstAvailableTimestamp(db, streamData.currentLimit);
+      streamData.currentTime = new Date(firstTimestamp);
+      
+      // If we don't have a base start time, calculate endpoint based on current timestamp
+      if (streamData.lastProcessedTimestamp) {
+        const lastTime = new Date(streamData.lastProcessedTimestamp);
+        streamData.currentTime = new Date(lastTime.getTime() + SLIDING_WINDOW_CONFIG.windowIncrement);
+      }
+    }
+    
+    // Update the stream interval for the active stream
+    if (streamData.fetchIntervalId) {
+      clearInterval(streamData.fetchIntervalId);
+      
+      // Start a new interval with updated timing
+      if (!streamData.isPaused) {
+        const db = req.app.locals.db || await initializeDatabase();
+        
+        streamData.fetchIntervalId = setInterval(async () => {
+          try {
+            if (streamData.isPaused) return;
+            
+            const incrementAmount = SLIDING_WINDOW_CONFIG.windowIncrement;
+            const windowStart = new Date(streamData.currentTime.getTime() - SLIDING_WINDOW_CONFIG.slidingWindowDuration);
+            const windowEnd = new Date(streamData.currentTime.getTime());
+            
+            const startStr = formatDateWithOffset(windowStart);
+            const endStr = formatDateWithOffset(windowEnd);
+            
+            const fetchedData = await fetchSlidingWindowData(db, startStr, endStr, streamData.currentLimit);
+            
+            if (fetchedData.sensorData && fetchedData.sensorData.length > 0) {
+              // Update the last processed timestamp
+              const lastPoint = fetchedData.sensorData[fetchedData.sensorData.length - 1];
+              streamData.lastProcessedTimestamp = lastPoint.timestamp;
+              
+              stream.write(`data: ${JSON.stringify(fetchedData)}\n\n`);
+            }
+            
+            // Increment the current time
+            streamData.currentTime.setTime(streamData.currentTime.getTime() + incrementAmount);
+          } catch (error) {
+            console.error("Error in stream interval:", error);
+            stream.write(`event: error\ndata: {"message": "Error processing data"}\n\n`);
+          }
+        }, SLIDING_WINDOW_CONFIG.streamInterval);
+      }
+    }
+    
+    // Notify the client about the speed change
+    stream.write(`event: speed-change\ndata: ${JSON.stringify({ speedFactor })}\n\n`);
+    
+    res.status(200).send(`Stream speed updated to ${speedFactor}x`);
+  } catch (error) {
+    console.error("Error updating stream speed:", error);
+    res.status(500).send("Failed to update stream speed");
+  }
+});
+
 export default router;

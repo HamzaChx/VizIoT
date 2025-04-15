@@ -78,6 +78,30 @@ export function startSlidingWindowStream(canvasId) {
     showToast("success", "Stream Position Updated", `Viewing data at ${offsetSeconds} seconds from start`);
   });
 
+  eventSource.addEventListener("speed-change", (event) => {
+    const { speedFactor } = JSON.parse(event.data);
+    
+    // Update the UI to reflect the new speed
+    const speedButtons = {
+      0.5: document.getElementById("speed-half"),
+      1: document.getElementById("speed-normal"),
+      2: document.getElementById("speed-double")
+    };
+    
+    // Reset all buttons
+    Object.values(speedButtons).forEach(btn => {
+      btn.classList.remove("active", "btn-secondary");
+      btn.classList.add("btn-outline-secondary");
+    });
+    
+    // Highlight active button
+    const activeButton = speedButtons[speedFactor];
+    if (activeButton) {
+      activeButton.classList.remove("btn-outline-secondary");
+      activeButton.classList.add("active", "btn-secondary");
+    }
+  });
+
   eventSource.addEventListener("close", () => {
     if (appState.streaming.eventSource) {
       appState.streaming.eventSource.close();

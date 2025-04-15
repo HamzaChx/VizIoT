@@ -12,11 +12,21 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     initializeControls();
 
-    const response = await fetch("/api/config/database");
-    if (response.ok) {
-      const data = await response.json();
+    const dbResponse = await fetch("/api/config/database");
+    if (dbResponse.ok) {
+      const data = await dbResponse.json();
       const dbName = data.databases[data.current];
       showToast("info", "Database", `Using ${dbName} database`);
+    }
+
+    try {
+      const configResponse = await fetch("/api/streaming/config");
+      if (configResponse.ok) {
+        const config = await configResponse.json();
+        console.log("Stream configuration loaded:", config);
+      }
+    } catch (configError) {
+      console.error("Error loading streaming configuration:", configError);
     }
   } catch (error) {
     console.error("Error initializing app:", error);
