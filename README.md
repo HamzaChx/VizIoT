@@ -132,6 +132,7 @@ The application follows a modular architecture:
 ## Acknowledgements
 
 - [Technical University of Munich](https://www.cs.cit.tum.de/bpm/chair/) - Chair of Information Systems and Business Process Management
+- [Chess Piece Dataset](https://zenodo.org/records/7958478) - Dataset used for building the solution
 - [GR Framework](https://gr-framework.org) - Used for graph visualization
 - [Bootstrap](https://getbootstrap.com/) - Used for UI components
 - [SQLite](https://www.sqlite.org/index.html) - Database engine
