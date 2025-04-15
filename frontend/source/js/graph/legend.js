@@ -1,24 +1,4 @@
-/**
- * Updates the legend displayed in the UI.
- * @param {Object} groupColorMap - Mapping of groups to colors.
- * @param {Object} groupSensorMap - Mapping of groups to their sensors.
- */
-export function updateLegend(groupColorMap, groupSensorMap, groupIntervals) {
-    const legendList = document.getElementById("legend-list");
-    if (!legendList) return;
-
-    legendList.innerHTML = "";
-
-    Object.entries(groupColorMap).forEach(([group, colorIndex]) => {
-        if (colorIndex !== undefined) {
-            const legendItem = createLegendItem(group, colorIndex, groupSensorMap[group]);
-            legendList.appendChild(legendItem);
-        }
-    });
-
-    updateHeatmap(groupColorMap, groupIntervals);
-
-}
+import appState from "../state.js";
 
 /**
  * Creates a legend item for a sensor group using Bootstrap for styling.
@@ -51,10 +31,32 @@ function createLegendItem(group, colorIndex, sensors) {
     sensorList.className = "list-group list-group-flush ms-3";
 
     if (sensors && sensors.length > 0) {
+        const sensorShadeMap = appState.graph.manager?.sensorPlotter?.getSensorShadeMap() || {};
+        const sensorBuffers = appState.graph.manager?.getSensorBuffers() || {};
+        
         sensors.forEach((sensorName) => {
             const sensorItem = document.createElement("li");
-            sensorItem.textContent = sensorName;
-            sensorItem.className = "list-group-item px-0 py-1";
+            sensorItem.className = "list-group-item px-0 py-1 d-flex align-items-center";
+
+            const sensorId = Object.keys(sensorBuffers).find(id => 
+                sensorBuffers[id].sensorName === sensorName && 
+                sensorBuffers[id].group === group
+            );
+            
+            const sensorColorBox = document.createElement("span");
+            sensorColorBox.style.width = "10px";
+            sensorColorBox.style.height = "10px";
+            sensorColorBox.className = "me-2 rounded-circle";
+            
+            if (sensorId && sensorShadeMap[sensorId]) {
+                const shade = sensorShadeMap[sensorId];
+                sensorColorBox.style.backgroundColor = getShadedColor(colorIndex, shade);
+            } else {
+                sensorColorBox.style.backgroundColor = getGRColor(colorIndex);
+            }
+            
+            sensorItem.appendChild(sensorColorBox);
+            sensorItem.appendChild(document.createTextNode(sensorName));
             sensorList.appendChild(sensorItem);
         });
     }
@@ -65,6 +67,55 @@ function createLegendItem(group, colorIndex, sensors) {
     return legendItem;
 }
 
+function getShadedColor(colorIndex, shade) {
+    let r, g, b;
+    
+    switch(colorIndex) {
+        case 2: r = 255; g = 0; b = 0; break;         // Red
+        case 3: r = 0; g = 204; b = 0; break;         // Green
+        case 4: r = 26; g = 102; b = 255; break;      // Blue
+        case 5: r = 255; g = 230; b = 0; break;       // Yellow
+        case 6: r = 255; g = 51; b = 204; break;      // Magenta
+        case 7: r = 0; g = 204; b = 255; break;       // Cyan
+        case 8: r = 255; g = 128; b = 0; break;       // Orange
+        default: return getGRColor(colorIndex);        // Use default
+    }
+    
+    if (shade < 0.5) {
+        const factor = 0.3 + (shade * 1.4); // 0.3 to 1.0
+        r = Math.round(r * factor);
+        g = Math.round(g * factor);
+        b = Math.round(b * factor);
+    } else {
+        const factor = (shade - 0.5) * 1.2; // 0 to 0.6
+        r = Math.min(255, Math.round(r + (255 - r) * factor));
+        g = Math.min(255, Math.round(g + (255 - g) * factor));
+        b = Math.min(255, Math.round(b + (255 - b) * factor));
+    }
+    
+    return `rgb(${r}, ${g}, ${b})`;
+}
+
+/**
+ * Updates the legend displayed in the UI.
+ * @param {Object} groupColorMap - Mapping of groups to colors.
+ * @param {Object} groupSensorMap - Mapping of groups to their sensors.
+ */
+export function updateLegend(groupColorMap, groupSensorMap, groupIntervals) {
+    const legendList = document.getElementById("legend-list");
+    if (!legendList) return;
+
+    legendList.innerHTML = "";
+
+    Object.entries(groupColorMap).forEach(([group, colorIndex]) => {
+        if (colorIndex !== undefined) {
+            const legendItem = createLegendItem(group, colorIndex, groupSensorMap[group]);
+            legendList.appendChild(legendItem);
+        }
+    });
+
+    updateHeatmap(groupColorMap, groupIntervals);
+}
 /**
  * Updates the heatmap element with colored bands for each group.
  * @param {Object} groupColorMap - Mapping of groups to color indices.
@@ -74,13 +125,11 @@ function updateHeatmap(groupColorMap, groupIntervals) {
     const heatmapContainer = document.getElementById("heatmap");
     if (!heatmapContainer || !groupIntervals) return;
     
-    // Clear existing tooltips
     const tooltips = document.querySelectorAll('.tooltip');
     tooltips.forEach(tooltip => tooltip.remove());
     
     heatmapContainer.innerHTML = "";
     
-    // Sort groups by vertical position
     const sortedGroups = Object.entries(groupIntervals)
       .sort(([, a], [, b]) => b.group_max - a.group_max);
     
@@ -88,12 +137,10 @@ function updateHeatmap(groupColorMap, groupIntervals) {
         const band = document.createElement("div");
         band.className = "heatmap-band";
         
-        // Match graph viewport exactly - consider margins
-        const viewportStart = 0.05; // Graph starts at 0.1
-        const viewportEnd = 0.90;  // Graph ends at 0.95
+        const viewportStart = 0.05;
+        const viewportEnd = 0.90;
         const viewportHeight = viewportEnd - viewportStart;
         
-        // Adjust interval to match graph viewport
         const adjustedMax = (interval.group_max - viewportStart) / viewportHeight;
         const adjustedMin = (interval.group_min - viewportStart) / viewportHeight;
         
@@ -106,12 +153,11 @@ function updateHeatmap(groupColorMap, groupIntervals) {
             height: ${height}%;
             width: 100%;
             background-color: ${getGRColor(groupColorMap[group])};
+            opacity: 0.8;
         `;
         
-        // Simple tooltip implementation
         band.setAttribute('data-group', group);
         
-        // Show tooltip on hover
         band.addEventListener('mouseenter', (e) => {
             const tooltip = document.createElement('div');
             tooltip.className = 'tooltip show';
@@ -146,13 +192,13 @@ function updateHeatmap(groupColorMap, groupIntervals) {
  */
 function getGRColor(colorIndex) {
     const grColorMap = {
-        8: "#00008B",
-        7: "#FF00FF",
-        6: "#FFFF00",
-        5: "#00FFFF",
-        4: "#3357FF",
-        3: "#33FF57",
-        1: "#000000"
+        1: "#000000",               // Black
+        2: "#FF0000",               // Red
+        3: "#00CC00",               // Green
+        4: "#1A66FF",               // Blue
+        5: "#FFE600",               // Yellow
+        6: "#FF33CC",               // Magenta
+        7: "#00CCFF",               // Cyan
+        8: "#FF8000"                // Orange
     };
-    return grColorMap[colorIndex] || "#000000";
-}
+    return grColorMap[colorIndex] || "#000000";}
