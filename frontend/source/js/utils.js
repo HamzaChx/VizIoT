@@ -1,4 +1,9 @@
-import { cleanupUnusedSensors, updateEventBuffer, updateSensorBuffers } from "./graph/buffer.js";
+import { 
+  cleanupUnusedSensors, 
+  updateEventBuffer, 
+  updateSensorBuffers, 
+  clearEventBuffer 
+} from "./graph/buffer.js";
 import { formatDateWithOffset } from "../../../utils/utilities.js";
 import appState from "./state.js";
 
@@ -82,6 +87,8 @@ export function updateSliderOnPause(graphManager, newLimit, lastTimestamp) {
       });
 
       updateSensorBuffers(transformedData);
+
+      clearEventBuffer();
 
       if (eventData && eventData.length > 0) {
         updateEventBuffer(eventData);
