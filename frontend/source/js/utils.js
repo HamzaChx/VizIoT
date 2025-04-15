@@ -1,8 +1,13 @@
-import { cleanupUnusedSensors, updateEventBuffer, updateSensorBuffers } from "./graph/buffer.js";
+import { 
+  cleanupUnusedSensors, 
+  updateEventBuffer, 
+  updateSensorBuffers, 
+  clearEventBuffer 
+} from "./graph/buffer.js";
 import { formatDateWithOffset } from "../../../utils/utilities.js";
 import appState from "./state.js";
 
-export function showNewEventsMessage(count) {
+export function showNewEventsMessage(count, duration = 1500) {
   const messageElement = document.getElementById('new-events-message');
   const messageText = messageElement.querySelector('small');
   
@@ -15,7 +20,7 @@ export function showNewEventsMessage(count) {
       messageElement.classList.add('d-none');
       messageElement.classList.remove('fade-out');
     }, 500);
-  }, 1500);
+  }, duration);
 }
 
 export function showToast(type, title, message) {
@@ -77,11 +82,13 @@ export function updateSliderOnPause(graphManager, newLimit, lastTimestamp) {
           originalValue: entry.sliced_value,
           x: (Date.parse(entry.timestamp) - appState.streaming.startTime) / 1000,
           y: scaledY,
-          group: entry.group_name,
+          group: entry.group_name
         };
       });
 
       updateSensorBuffers(transformedData);
+
+      clearEventBuffer();
 
       if (eventData && eventData.length > 0) {
         updateEventBuffer(eventData);

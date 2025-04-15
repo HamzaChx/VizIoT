@@ -1,5 +1,5 @@
 import { initializeTabs } from "./tabs.js";
-import { formatDateWithOffset } from "../../../utils/utilities.js";
+import { formatDateWithOffset, formatReadableDate } from "../../../utils/utilities.js";
 import { renderAnnotationsList } from "./annotations.js";
 import appState from "../state.js";
 
@@ -85,9 +85,7 @@ export function showCombinedModal(eventInfo, sensors) {
                       <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#event-tab">Event</button>
                   </li>
                   <li class="nav-item ${!hasAnnotations ? 'd-none' : ''}" id="annotations-tab-item">
-                      <button class="nav-link" data-bs-toggle="tab" data-bs-target="#annotations-tab">
-                          Annotations <span class="mx-1 badge bg-secondary rounded-pill" id="annotations-count"></span>
-                      </button>
+                      <button class="nav-link" data-bs-toggle="tab" data-bs-target="#annotations-tab">Annotations</button>
                   </li>
               ` : ''}
               ${sensors.length > 0 ? `
@@ -131,7 +129,7 @@ export function renderEventContent(eventInfo) {
       <div class="list-group-item">
           <div class="row">
               <div>
-                  <small class="text-muted">Event Name</small>
+                  <small class="text-muted">Sensor Name</small>
                   <div class="fw-bold">${eventInfo.name}</div>
               </div>
           </div>
@@ -142,7 +140,7 @@ export function renderEventContent(eventInfo) {
               </div>
               <div class="col-6">
                   <small class="text-muted">Time</small>
-                  <div class="fw-bold">${date.toLocaleString()}</div>
+                  <div class="fw-bold">${formatReadableDate(date)}</div>
               </div>
           </div>
           <div class="mt-3">

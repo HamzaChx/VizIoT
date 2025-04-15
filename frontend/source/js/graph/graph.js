@@ -17,7 +17,6 @@ export default class GraphManager {
   constructor(canvasId) {
     this.canvasId = canvasId;
 
-    // Component initialization
     this.renderer = new GraphRenderer(canvasId);
     this.highlightManager = new HighlightManager();
     this.sensorPlotter = new SensorPlotter();
@@ -91,7 +90,11 @@ export default class GraphManager {
     this.stopDrawing();
     clearSensorBuffers();
     clearEventBuffer();
-    this.renderer.clear();
+
+    if (this.renderer) {
+      this.renderer.reset();
+    }
+
     updateLegend({}, {}, {});
     appState.update("sensors", { groupSensorMap: {}, groupIntervals: {} });
     this.renderer.updateWorkstation();
@@ -121,7 +124,6 @@ export default class GraphManager {
       return;
     }
 
-    // Clear and set up the graph
     this.renderer.clear();
     this.renderer.setWindow(xMin, xMax, yMin, yMax);
     this.renderer.drawGrid(0.25, 0.25);
@@ -139,18 +141,24 @@ export default class GraphManager {
       }
     );
 
-    // Plot data elements
     const events = getEventBuffer();
-    const groupColorMap = this.sensorPlotter.plotSensorData(this.renderer, buffers, range);
+    const groupColorMap = this.sensorPlotter.plotSensorData(
+      this.renderer,
+      buffers,
+      range
+    );
     this.eventPlotter.plotEventLines(this.renderer, events, range);
 
-    // Update the group sensor map from the plotter
-    appState.update("sensors", { groupSensorMap: this.sensorPlotter.getGroupSensorMap() });
+    appState.update("sensors", {
+      groupSensorMap: this.sensorPlotter.getGroupSensorMap(),
+    });
 
-    // Update the legend
-    updateLegend(groupColorMap, appState.sensors.groupSensorMap, appState.sensors.groupIntervals);
+    updateLegend(
+      groupColorMap,
+      appState.sensors.groupSensorMap,
+      appState.sensors.groupIntervals
+    );
 
-    // Draw highlights on top
     this.highlightManager.drawHighlights(this.renderer, buffers, range);
 
     appState.update("graph", { forceRedraw: false });

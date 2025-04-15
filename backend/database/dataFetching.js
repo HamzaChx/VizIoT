@@ -40,13 +40,14 @@ export async function fetchEventTimestamps(db, rawData, start, end, currentStep)
 }
 
 export async function fetchSlidingWindowData(db, start, end, limit = 1) {
+
   try {
     const rawData = await db.all(DATA_FETCH_QUERIES.FETCH_SLIDING_WINDOW,
       [limit, start, end]
     );
 
     if (!rawData.length) {
-      return { sensorData: [], groupSensorMap: {}, stopStream: true };
+      return { sensorData: [], groupSensorMap: {}, stopStream: false };
     }
 
     const groupIntervals = processGroupIntervals(rawData);
@@ -70,6 +71,7 @@ export async function fetchSlidingWindowData(db, start, end, limit = 1) {
       sensorData,
       groupSensorMap,
       groupIntervals,
+      stopStream: false,
     };
   } catch (error) {
     console.error("Error fetching sliding window data:", error.message);
@@ -135,4 +137,22 @@ function buildGroupSensorMap(rawData) {
     }
     return map;
   }, {});
+}
+
+export async function getFirstAvailableTimestamp(db) {
+  try {
+    const result = await db.get(`
+      SELECT MIN(timestamp) as first_timestamp 
+      FROM SensorData
+    `);
+    
+    if (result && result.first_timestamp) {
+      return result.first_timestamp;
+    } else {
+      console.log("No timestamps found in database, using default");
+      return "2025-03-21T10:00:00.00+02:00";
+    }
+  } catch (error) {
+    return "2025-03-21T10:00:00.00+02:00";
+  }
 }

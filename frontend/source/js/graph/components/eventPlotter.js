@@ -1,6 +1,5 @@
 export default class EventPlotter {
     constructor() {
-      // Height ranges for different event types
       this.eventHeights = {
         important: { start: 0, end: 1 },
         new: { start: 0.1, end: 0.95 },
@@ -11,23 +10,25 @@ export default class EventPlotter {
     plotEventLines(renderer, events, range) {
       if (!events.length || !renderer || !range) return;
       
-      const { xMin, xMax } = range;
+      const extendedRange = {
+        xMin: range.xMin - 5,
+        xMax: range.xMax
+      };
       
-      // Group events by type for batch rendering
+      const { xMin, xMax } = extendedRange;
+      
       const importantEvents = [];
       const newEvents = [];
       const regularEvents = [];
       
       events.forEach(event => {
         if (event.x < xMin || event.x > xMax) return;
-        
         if (event.isImportant) importantEvents.push(event);
         else if (event.isNew) newEvents.push(event);
         else regularEvents.push(event);
       });
   
-      // Batch render each event type
-      this.batchRenderEvents(renderer, importantEvents, 2, 1, 
+      this.batchRenderEvents(renderer, importantEvents, 1, 1, 
         this.eventHeights.important.start, this.eventHeights.important.end);
       
       this.batchRenderEvents(renderer, newEvents, 1, -6, 
@@ -35,8 +36,7 @@ export default class EventPlotter {
       
       this.batchRenderEvents(renderer, regularEvents, 1, 3, 
         this.eventHeights.regular.start, this.eventHeights.regular.end);
-  
-      // Reset line properties
+
       renderer.setLineProperties(1, 1, 1);
     }
     
@@ -49,4 +49,21 @@ export default class EventPlotter {
         renderer.drawLine(event.x, yStart, event.x, yEnd);
       });
     }
-  }5
+
+    batchRenderAnnotatedEvents(renderer, events) {
+      if (!events.length) return;
+      
+      events.forEach(event => {
+        const heightRange = event.isImportant
+          ? this.eventHeights.important
+          : event.isNew
+          ? this.eventHeights.new
+          : this.eventHeights.regular;
+          
+        renderer.drawLine(event.x, heightRange.start, event.x, heightRange.end);
+        
+        renderer.drawCircle(event.x, heightRange.end, 3);
+      });
+    }
+
+}

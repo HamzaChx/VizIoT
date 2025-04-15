@@ -33,6 +33,15 @@
         </a>
       </div>
 
+      <div class="d-flex align-items-center me-auto ms-4">
+        <a class="nav-link text-white px-3" href="/?db=evaluation" id="home-db-link">
+          <i class="fas fa-home me-1"></i>Smart Home
+        </a>
+        <a class="nav-link text-white px-3" href="/?db=chess" id="chess-db-link">
+          <i class="fas fa-chess me-1"></i>Chess Production
+        </a>
+      </div>
+
       <div>
         <a class="text-white fw-bold text-decoration-none" href="https://github.com/HamzaChx" target="_blank"
           rel="noopener noreferrer">
@@ -45,7 +54,7 @@
   <main class="flex-grow-1 bg-light py-4">
     <div class="container d-flex flex-column align-items-center">
       <!-- Controls -->
-      <div class="d-flex justify-content-center align-items-center gap-3 mb-4">
+       <div class="d-flex justify-content-center align-items-center gap-3 mb-2">
         <button id="play-button" class="btn btn-primary d-flex align-items-center">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="me-1"
             viewBox="0 0 16 16">
@@ -70,7 +79,7 @@
           </svg>
           Stop
         </button>
-        <input type="range" id="sensor-slider" min="1" max="45" value="1" step="1" />
+        <input type="range" id="sensor-slider" min="1" value="1" step="1" />
         <label for="sensor-slider">
           <span id="sensor-count">1</span>
         </label>
@@ -89,9 +98,23 @@
             </svg>
           </button>
         </div>
+
+        <div class="d-flex align-items-center ms-2">
+          <input type="number" id="rewind-time" class="form-control form-control-sm" style="width: 70px;" min="0" value="0" step="1"/>
+          <button id="rewind-button" class="btn btn-success btn-sm ms-1" type="button" title="Rewind to time">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-rewind-fill" viewBox="0 0 16 16">
+              <path d="M8.404 7.304a.802.802 0 0 0 0 1.392l6.363 3.692c.52.302 1.233-.043 1.233-.696V4.308c0-.653-.713-.998-1.233-.696z"/>
+              <path d="M.404 7.304a.802.802 0 0 0 0 1.392l6.363 3.692c.52.302 1.233-.043 1.233-.696V4.308c0-.653-.713-.998-1.233-.696z"/>
+            </svg>
+          </button>
+        </div>
       </div>
 
-      <div class="card shadow w-100" style="height: 75vh;">
+      <div id="sensor-info-display" class="text-center">
+        No sensor selected
+      </div>
+
+      <div class="card shadow w-100" style="height: 75vh; margin-top: 6px;">
         <div class="card-body row g-0 h-100">
           <!-- Legend Container -->
           <div id="legend-container" class="col-2 border-end d-flex flex-column mx-2">

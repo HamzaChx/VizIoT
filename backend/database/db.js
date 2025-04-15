@@ -59,8 +59,31 @@ const CREATE_TABLE_QUERIES = {
   `,
 };
 
-export async function initializeDatabase() {
-  const db = await open({ filename: "./data/sensor_logs.db", driver: sqlite3.Database });
+let activeDatabase = "evaluation";
+
+const DATABASE_PATHS = {
+  "evaluation": "./data/evaluation.db",
+  "chess": "./data/sensor_logs.db"
+};
+
+export function setActiveDatabase(dbName) {
+  if (DATABASE_PATHS[dbName]) {
+    activeDatabase = dbName;
+    return true;
+  }
+  return false;
+}
+
+export function getActiveDatabase() {
+  return activeDatabase;
+}
+
+export async function initializeDatabase(dbName = null) {
+  // Use specified database or fall back to active database
+  const dbToUse = dbName || activeDatabase;
+  const filename = DATABASE_PATHS[dbToUse] || DATABASE_PATHS.evaluation;
+  
+  const db = await open({ filename, driver: sqlite3.Database });
   for (const query of Object.values(CREATE_TABLE_QUERIES)) {
     await db.exec(query);
   }
