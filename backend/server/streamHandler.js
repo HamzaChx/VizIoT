@@ -27,15 +27,9 @@ export const startSlidingWindowStream = (res, db, config, startTime, streamData)
           streamData.currentLimit
         );
 
-      if (stopStream) {
-        res.write("event: close\ndata: {}\n\n");
-        res.end();
-        return;
-      }
-
-      res.write(
-        `data: ${JSON.stringify({ eventData, sensorData, groupSensorMap, groupIntervals })}\n\n`
-      );
+        res.write(
+          `data: ${JSON.stringify({ eventData, sensorData, groupSensorMap, groupIntervals })}\n\n`
+        );
 
       if (streamData.initialFetch) {
         streamData.initialFetch = false;

@@ -81,16 +81,6 @@ export function startSlidingWindowStream(canvasId) {
   eventSource.addEventListener("close", () => {
     if (appState.streaming.eventSource) {
       appState.streaming.eventSource.close();
-
-      if (!appState.streaming.dataReceived) {
-        showToast(
-          "dark",
-          "No Data Available",
-          `No data found for the first ${appState.sensors.limit} sensors. Try increasing the slider limit and press play again.`,
-          10000
-        );
-      }
-
       appState.update("streaming", { eventSource: null });
     }
 
@@ -115,8 +105,19 @@ export function stopSlidingWindowStream(userInitiated = true) {
 
   if (userInitiated) {
     if (appState.graph.manager) {
+      appState.graph.manager.stopDrawing();
       appState.graph.manager.reset();
+      
+      if (appState.graph.manager.renderer) {
+        appState.graph.manager.renderer.reset();
+        appState.graph.manager.renderer.previousWindow = { xMin: 0, xMax: 30 };
+        appState.graph.manager.renderer.previousLatestX = undefined;
+      }
     }
+
+    clearSensorBuffers();
+    clearEventBuffer();
+
     appState.reset();
     showToast(
       "danger",

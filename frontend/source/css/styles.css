@@ -93,3 +93,17 @@
 .toast.show {
   opacity: 1 !important;
 }
+
+#sensor-info-display {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #495057;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  box-shadow: 0 1px 3px rgba(0,0,0,.05);
+  border-radius: 5px;
+  padding: 6px 12px;
+  margin: 4px 0 8px 0;
+  display: inline-block;
+  min-width: 250px;
+}

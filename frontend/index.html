@@ -54,7 +54,7 @@
   <main class="flex-grow-1 bg-light py-4">
     <div class="container d-flex flex-column align-items-center">
       <!-- Controls -->
-      <div class="d-flex justify-content-center align-items-center gap-3 mb-4">
+       <div class="d-flex justify-content-center align-items-center gap-3 mb-2">
         <button id="play-button" class="btn btn-primary d-flex align-items-center">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="me-1"
             viewBox="0 0 16 16">
@@ -108,10 +108,13 @@
             </svg>
           </button>
         </div>
-
       </div>
 
-      <div class="card shadow w-100" style="height: 75vh;">
+      <div id="sensor-info-display" class="text-center">
+        No sensor selected
+      </div>
+
+      <div class="card shadow w-100" style="height: 75vh; margin-top: 6px;">
         <div class="card-body row g-0 h-100">
           <!-- Legend Container -->
           <div id="legend-container" class="col-2 border-end d-flex flex-column mx-2">

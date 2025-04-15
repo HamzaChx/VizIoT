@@ -188,6 +188,9 @@ export default class GraphRenderer {
   }
 
   reset() {
+
+    if (!this.gr) return;
+
     this.previousWindow = { xMin: 0, xMax: 30 };
     this.previousLatestX = undefined;
     this.clear();

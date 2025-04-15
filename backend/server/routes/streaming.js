@@ -138,6 +138,33 @@ router.put("/resume", (req, res) => {
 });
 
 /**
+ * Stop an active stream
+ * @route PUT /api/streaming/stop
+ */
+router.put("/stop", (req, res) => {
+  const stream = Array.from(activeStreams.keys()).find(
+    (stream) => stream.req.ip === req.ip
+  );
+  
+  if (stream) {
+    const streamData = activeStreams.get(stream);
+
+    if (streamData.fetchIntervalId) {
+      clearInterval(streamData.fetchIntervalId);
+      streamData.fetchIntervalId = null;
+    }
+    
+    stream.write('event: close\ndata: {"reason": "user-initiated"}\n\n');
+
+    activeStreams.delete(stream);
+    
+    res.status(200).send("Stream stopped");
+  } else {
+    res.status(404).send("Stream not found");
+  }
+});
+
+/**
  * Start a sliding window data stream
  * @route GET /api/streaming/window
  */
@@ -150,7 +177,7 @@ router.get("/window", async (req, res) => {
     res.setHeader("Connection", "keep-alive");
 
     const limit = parseInt(req.query.limit, 10) || 1;
-    const firstTimestamp = await getFirstAvailableTimestamp(db);
+    const firstTimestamp = await getFirstAvailableTimestamp(db, limit);
     const startTime = new Date(firstTimestamp);
 
     const streamData = {
@@ -182,54 +209,54 @@ router.get("/window", async (req, res) => {
 * @route PUT /api/streaming/rewind
 */
 router.put("/rewind", async (req, res) => {
- try {
-   const { offsetSeconds } = req.body;
-   
-   if (typeof offsetSeconds !== "number" || offsetSeconds < 0) {
-     return res.status(400).send("Invalid time offset");
-   }
-   
-   const stream = Array.from(activeStreams.keys()).find(
-     (stream) => stream.req.ip === req.ip
-   );
-   
-   if (!stream) {
-     return res.status(404).send("Stream not found");
-   }
-   
-   const db = await initializeDatabase();
-   const firstTimestamp = await getFirstAvailableTimestamp(db);
-   const baseStartTime = new Date(firstTimestamp);
-   
-   const targetTime = new Date(baseStartTime.getTime() + (offsetSeconds * 1000));
-   
-   const streamData = activeStreams.get(stream);
-   streamData.isPaused = false;
-   streamData.initialFetch = true;
-   
-   if (streamData.fetchIntervalId) {
-     clearInterval(streamData.fetchIntervalId);
-   }
-   
-   startSlidingWindowStream(
-     stream,
-     await initializeDatabase(),
-     SLIDING_WINDOW_CONFIG,
-     targetTime,
-     streamData
-   );
-   
-   stream.write(`event: rewind\ndata: ${JSON.stringify({ 
-     originalStartTime: baseStartTime.toISOString(),
-     targetTime: targetTime.toISOString(),
-     offsetSeconds
-   })}\n\n`);
-   
-   res.status(200).send("Stream position updated");
- } catch (error) {
-   console.error("Error updating stream position:", error);
-   res.status(500).send("Failed to update stream position");
- }
-});
+  try {
+    const { offsetSeconds } = req.body;
+    
+    if (typeof offsetSeconds !== "number" || offsetSeconds < 0) {
+      return res.status(400).send("Invalid time offset");
+    }
+    
+    const stream = Array.from(activeStreams.keys()).find(
+      (stream) => stream.req.ip === req.ip
+    );
+    
+    if (!stream) {
+      return res.status(404).send("Stream not found");
+    }
+    
+    const db = await initializeDatabase();
+    const streamData = activeStreams.get(stream);
+    const firstTimestamp = await getFirstAvailableTimestamp(db, streamData.currentLimit);
+    const baseStartTime = new Date(firstTimestamp);
+    
+    const targetTime = new Date(baseStartTime.getTime() + (offsetSeconds * 1000));
+    
+    streamData.isPaused = false;
+    streamData.initialFetch = true;
+    
+    if (streamData.fetchIntervalId) {
+      clearInterval(streamData.fetchIntervalId);
+    }
+    
+    startSlidingWindowStream(
+      stream,
+      await initializeDatabase(),
+      SLIDING_WINDOW_CONFIG,
+      targetTime,
+      streamData
+    );
+    
+    stream.write(`event: rewind\ndata: ${JSON.stringify({ 
+      originalStartTime: baseStartTime.toISOString(),
+      targetTime: targetTime.toISOString(),
+      offsetSeconds
+    })}\n\n`);
+    
+    res.status(200).send("Stream position updated");
+  } catch (error) {
+    console.error("Error updating stream position:", error);
+    res.status(500).send("Failed to update stream position");
+  }
+ });
 
 export default router;

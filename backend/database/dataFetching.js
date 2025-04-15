@@ -47,7 +47,7 @@ export async function fetchSlidingWindowData(db, start, end, limit = 1) {
     );
 
     if (!rawData.length) {
-      return { sensorData: [], groupSensorMap: {}, stopStream: true };
+      return { sensorData: [], groupSensorMap: {}, stopStream: false };
     }
 
     const groupIntervals = processGroupIntervals(rawData);
@@ -71,6 +71,7 @@ export async function fetchSlidingWindowData(db, start, end, limit = 1) {
       sensorData,
       groupSensorMap,
       groupIntervals,
+      stopStream: false,
     };
   } catch (error) {
     console.error("Error fetching sliding window data:", error.message);
