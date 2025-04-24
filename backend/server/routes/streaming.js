@@ -10,7 +10,7 @@ const router = express.Router();
 export const SLIDING_WINDOW_CONFIG = {
   slidingWindowDuration: 30 * 1000,
   windowIncrement: 500,
-  streamInterval: 42,
+  streamInterval: 60,
 };
 
 export const activeStreams = new Map();
