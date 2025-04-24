@@ -16,19 +16,7 @@ The application bridges the gap between raw IoT sensor data and process events, 
 
 ### Motivation
 
-We want to mine process events from sensor streams.
-We assume that value changes that occur together in many parallel running sensor streams signify important process events in these sensor streams.
-
-Therefore, a file format was created that contains for certain timestamps, which sensors changed together.
-
-As said before, timestamps with many sensors contributing to a change are deemed more important.
-
-For this thesis, we created a visualization tool in the spirit of Celonis (we have a slider!) that shows you the sensor values that are most important (i.e., the ones that most probably signify process events with their changes), where we can gradually unhide less important sensor values (with the slider!) to explore the timeline.
-
-Our tool also allows to mark and annotate timestamps/events/sensors to save our thoughts and findings.
-
-Our tool is supposed to be used by experts who know the meaning of the sensors and the changes together. It is supposed to make their life easier by hiding parts of complex sensor streams and to allow them to concentrate on the important parts.
-
+ VizIoT is designed for domain experts who understand the significance behind sensor changes. It helps you see when and where something meaningful might be happening, to uncover meaningful process events from raw IoT sensor streams.
 
 ### Methodology
 
