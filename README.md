@@ -102,7 +102,7 @@ The application follows a modular architecture:
 - **Play/Pause Button**: Start or pause the data stream visualization
 - **Stop Button**: Stop the current visualization session
 - **Sensor Slider**: Adjust the number of sensors displayed (1 to maximum available)
-- **Rewind**: Go back in time by specifying seconds in the input field
+- **Rewind**: Go back in time by specifying seconds in the input field (seconds since start of the stream)
 
 ### Interaction
 
