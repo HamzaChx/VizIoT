@@ -26,7 +26,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 function highlightActiveDatabaseLink() {
   const urlParams = new URLSearchParams(window.location.search);
-  const currentDb = urlParams.get("db") || "evaluation";
+  const currentDb = urlParams.get("db") || "chess";
 
   document.querySelectorAll(".navbar .nav-link").forEach((link) => {
     link.classList.remove("active", "fw-bold");

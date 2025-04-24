@@ -59,7 +59,7 @@ const CREATE_TABLE_QUERIES = {
   `,
 };
 
-let activeDatabase = "evaluation";
+let activeDatabase = "chess";
 
 const DATABASE_PATHS = {
   "evaluation": "./data/evaluation.db",
@@ -79,7 +79,6 @@ export function getActiveDatabase() {
 }
 
 export async function initializeDatabase(dbName = null) {
-  // Use specified database or fall back to active database
   const dbToUse = dbName || activeDatabase;
   const filename = DATABASE_PATHS[dbToUse] || DATABASE_PATHS.evaluation;
   
