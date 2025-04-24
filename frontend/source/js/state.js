@@ -1,6 +1,3 @@
-/**
- * Simple application state manager for VizIoT
- */
 const appState = {
   streaming: {
     isPaused: false,
@@ -71,7 +68,6 @@ const appState = {
           break;
       }
     } else {
-      // Reset everything to initial state
       this.streaming = {
         isPaused: false,
         eventSource: null,

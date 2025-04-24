@@ -137,6 +137,12 @@ const EVENT_HEIGHTS = {
   regular: { start: 0.05, end: 0.9 },
 };
 
+/**
+ * Retrieves the closest event to the clicked timestamp within a specified tolerance.
+ * @param {number} timestamp - The clicked timestamp.
+ * @param {Object} graphManager - An instance of GraphManager.
+ * @returns {Object|null} - The closest event or null if none found.
+ */
 function getEventAtTimestamp(timestamp, graphManager) {
   const events = graphManager.getEventBuffer();
   const xTolerance = 0.5;

@@ -42,7 +42,6 @@ export default class GraphRenderer {
 
   defineBaseColors() {
     if (!this.gr) return;
-    // Define standard colors for groups (indices 2-8)
     this.gr.setcolorrep(2, 1.0, 0.0, 0.0);
     this.gr.setcolorrep(3, 0.0, 0.8, 0.0);
     this.gr.setcolorrep(4, 0.1, 0.4, 1.0);
@@ -67,7 +66,7 @@ export default class GraphRenderer {
       case 6: r = 1.0; g = 0.2; b = 0.8; break;     // Magenta
       case 7: r = 0.0; g = 0.8; b = 0.9; break;     // Cyan
       case 8: r = 1.0; g = 0.5; b = 0.0; break;     // Orange
-      default: r = 0.0; g = 0.0; b = 0.0;           // Black (fallback)
+      default: r = 0.0; g = 0.0; b = 0.0;           // Black
     }
 
     if (shade < 0.5) {

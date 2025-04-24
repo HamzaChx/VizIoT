@@ -67,6 +67,12 @@ function createLegendItem(group, colorIndex, sensors) {
     return legendItem;
 }
 
+/**
+ *  Generates a shaded color based on the color index and shade value
+ * @param {number} colorIndex - The index of the color in the color map
+ * @param {number} shade - The shade value (0 to 1) to determine the lightness/darkness of the color
+ * @returns 
+ */
 function getShadedColor(colorIndex, shade) {
     let r, g, b;
     

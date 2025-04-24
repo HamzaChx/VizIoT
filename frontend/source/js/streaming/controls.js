@@ -156,8 +156,6 @@ export function initializeControls() {
         }
       }
       
-      // appState.reset("streaming");
-      
       appState.sensors.limit = parseInt(slider.value);
 
       startSlidingWindowStream("example-canvas");
